@@ -17,6 +17,7 @@ interface User {
   updated_at: string
   // Avatar veya studentId gibi ek alanlar API yanıtına göre eklenebilir
   avatar?: string 
+  student_id?: number | null; // student_id eklendi (opsiyonel)
 }
 
 // Auth bağlamı tipi - token eklendi
@@ -32,6 +33,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   apiUrl: string
   setApiUrl: (url: string) => void
+  refreshUser: () => Promise<void>; // Kullanıcı bilgisini yenileme fonksiyonu eklendi
 }
 
 // Varsayılan değerler ile bağlam oluşturma - token eklendi
@@ -46,7 +48,8 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
   isAuthenticated: false,
   apiUrl: 'http://127.0.0.1:5000', // Örnek API URL'si ile güncellendi
-  setApiUrl: () => {}
+  setApiUrl: () => {},
+  refreshUser: async () => {}, // refreshUser için varsayılan eklendi
 })
 
 // Auth bağlamını kullanmak için özel hook
@@ -76,6 +79,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // apiService.setBaseUrl(url) // Bu satırın apiService yapınıza göre olması gerekir
   }
 
+  // Kullanıcı bilgisini API'den alıp state'i güncelleyen fonksiyon
+  const fetchAndSetUser = async () => {
+    const storedToken = localStorage.getItem('access_token');
+    if (!storedToken) {
+       setUser(null);
+       setRole(null);
+       setTeacherId(null);
+       setToken(null);
+       return; // Token yoksa işlemi sonlandır
+    }
+
+    setToken(storedToken);
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${storedToken}`,
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+         throw new Error('Token validation failed during refresh');
+      }
+
+      // Hem teacher_id hem de student_id gelebilir
+      const userData: User & { teacher_id?: number; student_id?: number } = await response.json(); 
+
+      if (userData) {
+        setUser(userData);
+        setRole(userData.role);
+        setTeacherId(userData.role === 'TEACHER' ? userData.teacher_id || null : null);
+        // student_id user arayüzünde olduğu için ekstra bir state'e gerek yok
+      } else {
+         throw new Error('No user data found during refresh');
+      }
+    } catch (error) {
+       console.error("User refresh failed:", error);
+       // Başarısız olursa token'ı temizle ve logout yap (opsiyonel)
+       localStorage.removeItem('access_token');
+       setToken(null);
+       setUser(null);
+       setRole(null);
+       setTeacherId(null);
+       // router.push('/auth/login'); // Otomatik yönlendirme opsiyonel
+    }
+  };
+
+
   useEffect(() => {
     // Saklanan API URL'ini kontrol et ve ayarla
     const savedApiUrl = localStorage.getItem('apiUrl')
@@ -90,48 +141,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Sayfa yüklendiğinde kullanıcı bilgisini ve token'ı getir
     const checkAuth = async () => {
-      const storedToken = localStorage.getItem('access_token') // token anahtarı güncellendi
-      setToken(storedToken) // Token state'ini ayarla
-
-      if (storedToken) {
-        try {
-          const response = await fetch(`${apiUrl}/api/auth/me`, { // apiUrl kullanıldı
-             headers: {
-               'Authorization': `Bearer ${storedToken}`,
-               'Accept': 'application/json'
-             }
-          });
-          
-          if (!response.ok) {
-             throw new Error('Token validation failed');
-          }
-
-          const userData: User & { teacher_id?: number } = await response.json(); // teacher_id bekliyoruz
-
-          if (userData) {
-            setUser(userData)
-            setRole(userData.role) // Role bilgisini ayarla
-            // Eğer öğretmen ise teacherId'yi API'den gelen teacher_id ile ayarla
-            if (userData.role === 'TEACHER' && userData.teacher_id) {
-              setTeacherId(userData.teacher_id);
-            } else {
-              setTeacherId(null);
-            }
-          } else {
-             throw new Error('No user data found');
-          }
-          
-        } catch (error) {
-          console.error("Token check failed:", error)
-          localStorage.removeItem('access_token') // token anahtarı güncellendi
-          setToken(null) // Token state'ini temizle
-          setUser(null)
-          setRole(null) // role sıfırlandı
-          setTeacherId(null); // Hata durumunda teacherId'yi sıfırla
-        }
-      }
-      
-      setLoading(false)
+       setLoading(true); // Yükleme başlangıcı
+       await fetchAndSetUser(); // Kullanıcı bilgisini al
+       setLoading(false); // Yükleme bitişi
     }
 
     checkAuth()
@@ -171,24 +183,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { access_token, user: userData } = data
       
       localStorage.setItem('access_token', access_token)
-      setToken(access_token) // Token state'ini ayarla
+      setToken(access_token)
       setUser(userData)
       setRole(userData.role)
       
-      // Eğer öğretmen ise teacherId'yi API'den gelen teacher_id ile ayarla
       if (userData.role === 'TEACHER' && userData.teacher_id) {
          setTeacherId(userData.teacher_id);
       } else {
          setTeacherId(null);
       }
 
-      // Rol tabanlı yönlendirme (API'den gelen role değerine göre)
+      // *** Yönlendirme öncesi sessionStorage'a işaret ekle ***
+      sessionStorage.setItem('needsDashboardRefresh', 'true');
+
+      // Rol tabanlı yönlendirme
       if (userData.role === 'TEACHER') {
         router.push('/dashboard/teacher')
       } else if (userData.role === 'STUDENT') {
         router.push('/dashboard/student')
       } else {
-         // Diğer roller veya varsayılan durum için yönlendirme
          router.push('/dashboard') 
       }
       
@@ -214,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/auth/login')
   }
 
-  // Context değeri güncellendi - token eklendi
+  // Context değeri güncellendi - token ve refreshUser eklendi
   const value = {
     user,
     token, // Token eklendi
@@ -226,7 +239,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     isAuthenticated: !!user, // veya !!token da kullanılabilir
     apiUrl,
-    setApiUrl
+    setApiUrl,
+    refreshUser: fetchAndSetUser // refreshUser fonksiyonu bağlama eklendi
   }
 
   return (

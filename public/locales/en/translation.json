@@ -1,0 +1,225 @@
+{
+  "appName": {
+    "line1": "Face Recognition",
+    "line2": "Attendance System"
+  },
+  "header": {
+    "greeting": "Hello, {{firstName}} {{lastName}}",
+    "studentGreeting": "Welcome to the Student Portal, {{firstName}}",
+    "tooltips": {
+      "openMenu": "Open Menu",
+      "changeLanguage": "Change Language"
+    }
+  },
+  "language": {
+    "tr": "Turkish",
+    "en": "English"
+  },
+  "theme": {
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode"
+  },
+  "sidebar": {
+    "home": "Dashboard",
+    "courses": "Courses",
+    "coursesNew": "Add New Course",
+    "coursesList": "List Courses",
+    "attendance": "Attendance",
+    "attendanceNew": "Start New Session",
+    "attendanceHistory": "Attendance History",
+    "attendanceReports": "Absenteeism Report",
+    "students": "Students",
+    "studentsNew": "Add New Student",
+    "studentsList": "List Students",
+    "settings": "Settings",
+    "logout": "Logout",
+    "tooltips": {
+      "collapse": "Collapse Sidebar",
+      "expand": "Expand Sidebar",
+      "logout": "Sign Out"
+    },
+    "myCourses": "My Courses",
+    "myAttendance": "My Attendance"
+  },
+  "loading": "Loading",
+  "dashboard": {
+    "errors": {
+      "dataLoadFailed": "An error occurred while loading data.",
+      "fetchFailedPartial": "Could not fetch attendance data for {{count}} course(s).",
+      "attendanceFetchFailed": "Failed to retrieve attendance data for {{count}} course(s). Please try again later.",
+      "alertErrorGeneric": "An error occurred, please refresh the page.",
+      "accessDenied": "Access Denied",
+      "accessDeniedMsg": "You must be logged in as a teacher to view this page.",
+      "teacherInfoNotFound": "Teacher Information Not Found",
+      "teacherInfoNotFoundMsg": "Could not retrieve your Teacher ID. Please try logging in again or contact the system administrator.",
+      "takeAttendanceAlert": "Cannot start attendance for this course. Course ID is missing.",
+      "partialAttendanceError": "Could not load attendance data for some courses ({{count}} course(s)). The displayed statistics may be incomplete.",
+       "partialEmotionError": "Could not load emotion data for some courses ({{count}} course(s)). The displayed charts may be incomplete."
+    },
+    "loading": {
+      "courses": "Loading courses",
+      "attendance": "Loading attendance data",
+      "attendanceAndEmotion": "Loading attendance and emotion data"
+    },
+    "buttons": {
+      "login": "Login",
+      "tryAgain": "Try Again",
+      "addFirstCourse": "Add First Course",
+      "takeAttendance": "Take Attendance"
+    },
+    "schedule": {
+      "title": "Weekly Schedule",
+      "noCoursesYet": "You don't have any courses yet.",
+      "noCoursesInView": "No courses found to display.",
+      "hour": "Hour"
+    },
+    "attendanceChart": {
+        "title": "Average Attendance by Course",
+        "tooltipLabel": "Avg. Attendance",
+        "barName": "Average Attendance",
+        "noData": "No Attendance Data",
+        "insufficientDataMsg": "Not enough attendance data found to generate the chart.",
+        "noDataMsg": "No attendance data has been recorded yet to create the chart."
+    },
+    "quickLinks": {
+      "manageCourses": "Manage Courses",
+      "manageStudents": "Manage Students",
+      "attendanceHistory": "Attendance History"
+    },
+    "emotionChart": {
+        "title": "Emotion Distribution by Course",
+        "noData": "No Emotion Data",
+        "noDataMsg": "Not enough data is available yet to generate the emotion distribution chart."
+    },
+    "greeting": "Welcome, {{firstName}}",
+    "student": "Student",
+    "subtitle": "Track your course and attendance status here.",
+    "error": {
+        "missingStudentId": "Could not retrieve student ID. Please log in again.",
+        "fetchCourses": "Failed to fetch courses.",
+        "generic": "An error occurred while loading data."
+    },
+    "stats": {
+        "totalCourses": "Total Courses",
+        "averageAttendance": "Avg. Attendance",
+        "totalClasses": "Total Sessions",
+        "attendedClasses": "Attended Sessions"
+    },
+    "courses": {
+        "title": "My Courses",
+        "error": "An error occurred while loading courses.",
+        "noCoursesTitle": "No Courses Yet",
+        "noCoursesSubtitle": "You are not enrolled in any courses on the system.",
+        "attendanceRate": "Attendance Rate",
+        "rateNotAvailable": "N/A",
+        "viewDetails": "View Details"
+    },
+    "upcoming": {
+        "title": "Upcoming Lessons",
+        "notAvailable": "Upcoming lesson information is currently unavailable."
+    },
+    "recentAttendance": {
+        "title": "My Recent Attendance",
+        "course": "Course",
+        "date": "Date",
+        "status": "Status",
+        "error": "An error occurred while loading recent attendance.",
+        "noData": "No attendance records found yet."
+    }
+  },
+  "courses": {
+    "welcomeTitle": "Welcome {{firstName}}, to the Course Portal",
+    "myCoursesTitle": "My Courses",
+    "loading": "Loading course details...",
+    "loadingEnrolled": "Loading enrolled courses...",
+    "loadingAll": "Loading available courses...",
+    "noCourses": "No courses found.",
+    "semester": "Semester",
+    "courseCode": "Course Code",
+    "enroll": {
+        "title": "Available Courses to Enroll",
+        "button": "Enroll in Course",
+        "loadingButton": "Enrolling...",
+        "noAvailableCourses": "There are no other courses available for enrollment.",
+        "success": "Successfully enrolled in {{courseCode}}!",
+        "error": {
+            "missingAuth": "You must be logged in to enroll.",
+            "api": "An error occurred during enrollment.",
+            "generic": "Enrollment failed."
+        }
+    },
+    "error": {
+        "title": "Error",
+        "fetch": "Failed to fetch course details.",
+        "fetchEnrolled": "Failed to fetch enrolled courses.",
+        "fetchAll": "Failed to fetch all courses.",
+        "fetchUser": "Failed to fetch user details.",
+        "missingStudentId": "Student ID could not be retrieved.",
+        "missingAuth": "Authentication details are missing."
+    }
+  },
+  "attendance": {
+    "title": "Attendance Status",
+    "selectCourseLabel": "Select Course:",
+    "selectCoursePlaceholder": "Select a course...",
+    "loadingCourses": "Loading courses...",
+    "noCoursesFound": "No courses found.",
+    "listTitle": "Attendance Records",
+    "loadingAttendance": "Loading attendance records...",
+    "noAttendanceData": "No attendance records found for this course.",
+    "table": {
+        "date": "Date",
+        "lesson": "Lesson Hour",
+        "status": "Status"
+    },
+    "status": {
+        "present": "Present",
+        "absent": "Absent",
+        "late": "Late",
+        "excused": "Excused"
+    },
+    "error": {
+        "missingStudentId": "Student ID not found.",
+        "fetchCourses": "Failed to fetch courses.",
+        "fetchAttendance": "Failed to fetch attendance details."
+    }
+  },
+  "settings": {
+      "title": "Settings",
+      "label": {
+          "firstName": "First Name",
+          "lastName": "Last Name"
+      },
+      "button": {
+          "save": "Save"
+      },
+      "loadingUser": "Loading user information...",
+      "success": {
+          "updateMessage": "Profile updated successfully."
+      },
+      "error": {
+          "notAuthenticated": "You must be logged in to update your profile.",
+          "updateFailed": "An error occurred while updating the profile."
+      }
+  },
+  "days": {
+    "MONDAY": "Monday",
+    "TUESDAY": "Tuesday",
+    "WEDNESDAY": "Wednesday",
+    "THURSDAY": "Thursday",
+    "FRIDAY": "Friday",
+    "SATURDAY": "Saturday",
+    "SUNDAY": "Sunday"
+  },
+  "emotions": {
+    "happy": "Happy",
+    "sad": "Sad",
+    "angry": "Angry",
+    "neutral": "Neutral",
+    "surprise": "Surprised",
+    "fear": "Fearful",
+    "disgust": "Disgusted",
+    "unknown": "Unknown"
+  },
+  "student": "Student"
+} 

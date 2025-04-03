@@ -1,0 +1,225 @@
+{
+  "appName": {
+    "line1": "Yüz Tanıma",
+    "line2": "Yoklama Sistemi"
+  },
+  "header": {
+    "greeting": "Merhaba, {{firstName}} {{lastName}}",
+    "studentGreeting": "Öğrenci Portalına Hoş Geldin, {{firstName}} ",
+    "tooltips": {
+      "openMenu": "Menüyü Aç",
+      "changeLanguage": "Dili Değiştir"
+    }
+  },
+  "language": {
+    "tr": "Türkçe",
+    "en": "İngilizce"
+  },
+  "theme": {
+    "lightMode": "Açık Mod",
+    "darkMode": "Koyu Mod"
+  },
+  "sidebar": {
+    "home": "Ana Sayfa",
+    "courses": "Dersler",
+    "coursesNew": "Yeni Ders Ekle",
+    "coursesList": "Dersleri Listele",
+    "attendance": "Yoklama",
+    "attendanceNew": "Yeni Yoklama Başlat",
+    "attendanceHistory": "Geçmiş Yoklamalar",
+    "attendanceReports": "Devamsızlık Raporu",
+    "students": "Öğrenciler",
+    "studentsNew": "Yeni Öğrenci Ekle",
+    "studentsList": "Öğrencileri Listele",
+    "settings": "Ayarlar",
+    "logout": "Çıkış Yap",
+    "tooltips": {
+      "collapse": "Kenar Çubuğunu Daralt",
+      "expand": "Kenar Çubuğunu Genişlet",
+      "logout": "Oturumu Kapat"
+    },
+    "myCourses": "Derslerim",
+    "myAttendance": "Devamsızlığım"
+  },
+  "loading": "Yükleniyor",
+  "dashboard": {
+    "errors": {
+      "dataLoadFailed": "Veri yüklenirken bir hata oluştu.",
+      "fetchFailedPartial": "{{count}} ders için yoklama verisi alınamadı.",
+      "attendanceFetchFailed": "{{count}} ders için yoklama verileri alınamadı. Lütfen daha sonra tekrar deneyin.",
+      "alertErrorGeneric": "Bir hata oluştu, lütfen sayfayı yenileyin.",
+      "accessDenied": "Erişim Reddedildi",
+      "accessDeniedMsg": "Bu sayfayı görüntülemek için öğretmen olarak giriş yapmanız gerekmektedir.",
+      "teacherInfoNotFound": "Öğretmen Bilgisi Bulunamadı",
+      "teacherInfoNotFoundMsg": "Öğretmen ID'niz alınamadı. Lütfen tekrar giriş yapmayı deneyin veya sistem yöneticisine başvurun.",
+      "takeAttendanceAlert": "Bu ders için yoklama başlatılamıyor. Ders ID bilgisi eksik.",
+      "partialAttendanceError": "Bazı dersler için yoklama verisi yüklenemedi ({{count}} ders). Gösterilen istatistikler eksik olabilir.",
+       "partialEmotionError": "Bazı dersler için duygu verisi yüklenemedi ({{count}} ders). Gösterilen grafikler eksik olabilir."
+    },
+    "loading": {
+      "courses": "Dersler yükleniyor",
+      "attendance": "Yoklama verileri yükleniyor",
+      "attendanceAndEmotion": "Yoklama ve duygu verileri yükleniyor"
+    },
+    "buttons": {
+      "login": "Giriş Yap",
+      "tryAgain": "Tekrar Dene",
+      "addFirstCourse": "İlk Dersi Ekle",
+      "takeAttendance": "Yoklama Başlat"
+    },
+    "schedule": {
+      "title": "Haftalık Ders Programı",
+      "noCoursesYet": "Henüz hiç dersiniz yok.",
+      "noCoursesInView": "Görüntülenecek ders bulunamadı.",
+      "hour": "Saat"
+    },
+    "attendanceChart": {
+        "title": "Derslere Göre Ortalama Katılım",
+        "tooltipLabel": "Ort. Katılım",
+        "barName": "Ortalama Katılım",
+        "noData": "Katılım Verisi Yok",
+        "insufficientDataMsg": "Grafik için yeterli katılım verisi bulunamadı.",
+        "noDataMsg": "Grafiği oluşturmak için henüz yoklama verisi kaydedilmemiş."
+    },
+    "quickLinks": {
+      "manageCourses": "Dersleri Yönet",
+      "manageStudents": "Öğrencileri Yönet",
+      "attendanceHistory": "Yoklama Geçmişi"
+    },
+    "emotionChart": {
+        "title": "Derslere Göre Duygu Dağılımı",
+        "noData": "Duygu Verisi Yok",
+        "noDataMsg": "Duygu dağılım grafiğini oluşturmak için henüz yeterli veri bulunmamaktadır."
+    },
+    "greeting": "Hoş geldin, {{firstName}}",
+    "student": "Öğrenci",
+    "subtitle": "Ders ve yoklama durumunu buradan takip edebilirsin.",
+    "error": {
+        "missingStudentId": "Öğrenci kimliği alınamadı. Lütfen tekrar giriş yapın.",
+        "fetchCourses": "Dersler getirilemedi.",
+        "generic": "Veri yüklenirken bir hata oluştu."
+    },
+    "stats": {
+        "totalCourses": "Toplam Ders",
+        "averageAttendance": "Ort. Katılım",
+        "totalClasses": "Toplam Oturum",
+        "attendedClasses": "Katıldığı Oturum"
+    },
+    "courses": {
+        "title": "Derslerim",
+        "error": "Dersler yüklenirken bir hata oluştu.",
+        "noCoursesTitle": "Henüz Dersin Yok",
+        "noCoursesSubtitle": "Sisteme kayıtlı herhangi bir dersin bulunmuyor.",
+        "attendanceRate": "Katılım Oranı",
+        "rateNotAvailable": "Hesaplanamadı",
+        "viewDetails": "Detayları Görüntüle"
+    },
+    "upcoming": {
+        "title": "Yaklaşan Dersler",
+        "notAvailable": "Yaklaşan ders bilgisi şu anda mevcut değil."
+    },
+    "recentAttendance": {
+        "title": "Son Yoklamalarım",
+        "course": "Ders",
+        "date": "Tarih",
+        "status": "Durum",
+        "error": "Son yoklamalar yüklenirken bir hata oluştu.",
+        "noData": "Henüz yoklama kaydın bulunmuyor."
+    }
+  },
+  "courses": {
+    "welcomeTitle": "Merhaba {{firstName}}, Ders Portalı'na Hoş Geldiniz",
+    "myCoursesTitle": "Derslerim",
+    "loading": "Ders bilgileri yükleniyor...",
+    "loadingEnrolled": "Kayıtlı dersler yükleniyor...",
+    "loadingAll": "Uygun dersler yükleniyor...",
+    "noCourses": "Kayıtlı ders bulunamadı.",
+    "semester": "Dönem",
+    "courseCode": "Ders Kodu",
+    "enroll": {
+        "title": "Kayıt Olabileceğiniz Dersler",
+        "button": "Derse Kaydol",
+        "loadingButton": "Kaydediliyor...",
+        "noAvailableCourses": "Kayıt olabileceğiniz başka ders bulunmamaktadır.",
+        "success": "Başarıyla {{courseCode}} dersine kayıt oldunuz!",
+        "error": {
+            "missingAuth": "Kayıt olmak için giriş yapmalısınız.",
+            "api": "Derse kayıt olma sırasında bir hata oluştu.",
+            "generic": "Derse kayıt olma işlemi başarısız."
+        }
+    },
+    "error": {
+        "title": "Hata",
+        "fetch": "Ders bilgileri alınamadı.",
+        "fetchEnrolled": "Kayıtlı dersler alınamadı.",
+        "fetchAll": "Tüm dersler alınamadı.",
+        "fetchUser": "Kullanıcı bilgileri alınamadı.",
+        "missingStudentId": "Öğrenci kimliği alınamadı.",
+        "missingAuth": "Kimlik bilgileri eksik."
+    }
+  },
+  "attendance": {
+    "title": "Devamsızlık Durumu",
+    "selectCourseLabel": "Dersi Seçin:",
+    "selectCoursePlaceholder": "Bir ders seçin...",
+    "loadingCourses": "Dersler yükleniyor...",
+    "noCoursesFound": "Kayıtlı ders bulunamadı.",
+    "listTitle": "Yoklama Kayıtları",
+    "loadingAttendance": "Yoklama kayıtları yükleniyor...",
+    "noAttendanceData": "Bu ders için yoklama kaydı bulunamadı.",
+    "table": {
+        "date": "Tarih",
+        "lesson": "Ders Saati",
+        "status": "Durum"
+    },
+    "status": {
+        "present": "Var",
+        "absent": "Yok",
+        "late": "Geç",
+        "excused": "İzinli"
+    },
+    "error": {
+        "missingStudentId": "Öğrenci kimliği alınamadı.",
+        "fetchCourses": "Dersler getirilemedi.",
+        "fetchAttendance": "Devamsızlık bilgisi alınamadı."
+    }
+  },
+  "settings": {
+      "title": "Ayarlar",
+      "label": {
+          "firstName": "Ad",
+          "lastName": "Soyad"
+      },
+      "button": {
+          "save": "Kaydet"
+      },
+      "loadingUser": "Kullanıcı bilgileri yükleniyor...",
+      "success": {
+          "updateMessage": "Profil başarıyla güncellendi."
+      },
+      "error": {
+          "notAuthenticated": "Profilinizi güncellemek için giriş yapmalısınız.",
+          "updateFailed": "Profil güncellenirken bir hata oluştu."
+      }
+  },
+  "days": {
+    "MONDAY": "Pazartesi",
+    "TUESDAY": "Salı",
+    "WEDNESDAY": "Çarşamba",
+    "THURSDAY": "Perşembe",
+    "FRIDAY": "Cuma",
+    "SATURDAY": "Cumartesi",
+    "SUNDAY": "Pazar"
+  },
+  "emotions": {
+    "happy": "Mutlu",
+    "sad": "Üzgün",
+    "angry": "Kızgın",
+    "neutral": "Nötr",
+    "surprise": "Şaşkın",
+    "fear": "Korkmuş",
+    "disgust": "İğrenmiş",
+    "unknown": "Bilinmeyen"
+  },
+  "student": "Öğrenci"
+} 

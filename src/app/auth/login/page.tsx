@@ -6,11 +6,12 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Eye, EyeOff, Mail, Lock, ArrowRight, School, BookOpen, Globe, Camera, CheckCircle2, Sun, Moon, Settings, X, Save, Loader2, AlertCircle } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, ArrowRight, School, BookOpen, Globe, Camera, CheckCircle2, Sun, Moon, Settings, X, Save, Loader2, AlertCircle, UserPlus } from 'lucide-react'
 import { useAuth } from '@/providers/auth-provider'
 import { cn } from '@/lib/utils'
 import { useTheme } from 'next-themes'
 import { motion, AnimatePresence } from 'framer-motion'
+import { RegisterStudentModal } from '@/components/auth/RegisterStudentModal'
 
 // Yeni Tema Butonu Komponenti (Yerel olarak tanımlandı, isterseniz ayrı dosyaya taşıyabilirsiniz)
 interface ThemeToggleButtonProps {
@@ -133,6 +134,7 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false)
   const [resetSuccess, setResetSuccess] = useState<string | null>(null)
   const [resetError, setResetError] = useState<string | null>(null)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
   
   useEffect(() => {
     setMounted(true)
@@ -163,15 +165,14 @@ export default function LoginPage() {
       subtitle: 'Kampüs Çözümleri',
       welcome: 'Hoş Geldiniz',
       description: 'Yüz tanıma teknolojisiyle yoklama almanın en kolay yolu.',
-      welcomeBack: 'Tekrar Hoş Geldiniz',
-      loginPrompt: 'Lütfen hesabınıza giriş yapın',
+      welcomeBack: 'Hoş Geldiniz',
+      loginPrompt: 'Öğrenci veya Öğretmen portalına erişmek için lütfen giriş yapın.',
       email: 'E-posta',
       emailPlaceholder: 'ornek@email.com',
       password: 'Şifre',
       rememberMe: 'Beni Hatırla',
       forgotPassword: 'Şifremi Unuttum',
       login: 'Giriş Yap',
-      loading: 'Giriş Yapılıyor...',
       features: {
         fast: 'Hızlı',
         secure: 'Güvenli',
@@ -182,22 +183,90 @@ export default function LoginPage() {
       settings: 'Ayarlar',
       apiUrl: 'API Adresi',
       save: 'Kaydet',
-      close: 'Kapat'
+      registerStudent: 'Öğrenci Kayıt',
+      registerTitle: 'Öğrenci Kayıt Formu',
+      registerDescription: 'Lütfen aşağıdaki bilgileri doldurarak hesabınızı oluşturun.',
+      registerCtaTitle: 'Yeni Öğrenci misiniz?',
+      registerCtaDescription: 'Hemen kaydolarak derslerinize erişin ve yoklama işlemlerinizi kolaylaştırın.',
+      modal: {
+        personalInfo: 'Kişisel Bilgiler',
+        facePhoto: 'Yüz Fotoğrafı',
+        selectCourses: 'Ders Seçin',
+        noPhotoSelected: 'Fotoğraf seçilmedi veya kamera kapalı.',
+        noCoursesAvailable: 'Listelemek için ders bulunamadı.',
+      },
+      form: {
+        firstName: 'Adı',
+        lastName: 'Soyadı',
+        email: 'E-posta',
+        password: 'Şifre',
+        studentNumber: 'Öğrenci Numarası',
+        department: 'Bölüm',
+      },
+      placeholders: {
+        firstName: "Adı",
+        lastName: "Soyadı",
+        email: "john.doe@example.edu",
+        studentNumber: "2024123456",
+        department: "Bilgisayar Mühendisliği",
+      },
+      buttons: {
+        closeCamera: 'Kamera Kapat',
+        openCamera: 'Kamera Aç',
+        uploadPhoto: 'Dosya Yükle (.jpg, .png)',
+        takePhoto: 'Fotoğraf Çek',
+        resetPhoto: 'Fotoğrafı Sıfırla',
+        registering: 'Kayıt Ediliyor...',
+        registerAndEnroll: 'Kayıt ve Kayıt Ol',
+        newRegistration: 'Yeni Kayıt',
+        close: 'Kapat',
+      },
+      loading: {
+        courses: 'Dersler Yükleniyor...',
+      },
+      errors: {
+        fetchCoursesFailed: 'Dersler yüklenemedi.',
+        photoRequired: 'Yüz fotoğrafı yüklenmelidir.',
+        courseRequired: 'En az bir ders seçilmelidir.',
+        registerFailed: 'Öğrenci kaydı başarısız oldu. Lütfen bilgileri kontrol edin veya daha sonra tekrar deneyin.',
+        missingStudentId: 'Kayıt sonrası gerekli bilgiler alınamadı. Lütfen tekrar deneyin.',
+        photoUploadFailed: 'Yüz fotoğrafı yükleme başarısız oldu. Dosya formatını veya boyutunu kontrol edin.',
+        photoUploadFailedShort: 'Fotoğraf yükleme hatası',
+        enrollmentFailedGeneric: 'Kayıt sırasında bir veya daha fazla ders kayıt hatası oluştu.',
+        someEnrollmentsFailed: 'Bazı dersler kayıt edilemedi:',
+        unknownEnrollmentError: 'Bilinmeyen ders kayıt hatası.',
+        enrollmentFailedShort: 'Ders kayıt hatası',
+        registerFailedShort: 'Kayıt hatası',
+        fileSizeError: "Dosya boyutu 5MB'yi aşamaz.",
+        fileTypeError: "Sadece JPG veya PNG dosyaları kabul edilir.",
+        cameraAccessError: "Kamera erişimi engellendi veya bir hata oluştu.",
+        cameraPlayError: "Kamera başlatılamadı. Sayfayla etkileşim kurmayı deneyin.",
+      },
+      success: {
+        registrationComplete: 'Kayıt tamamlandı!',
+      },
+      steps: {
+        registeringStudent: 'Öğrenci kayıt ediliyor...',
+        uploadingPhoto: 'Yüz fotoğrafı yükleniyor...',
+        enrollingCourses: 'Dersler kayıt ediliyor...'
+      },
+      alt: {
+        photoPreview: 'Fotoğraf Önizleme'
+      }
     },
     en: {
       title: 'Face Recognition Attendance System',
       subtitle: 'Campus Solutions',
       welcome: 'Welcome',
       description: 'The easiest way to take attendance with face recognition technology.',
-      welcomeBack: 'Welcome Back',
-      loginPrompt: 'Please sign in to your account',
+      welcomeBack: 'Welcome',
+      loginPrompt: 'Please sign in to access the Student or Teacher portal.',
       email: 'Email',
       emailPlaceholder: 'example@email.com',
       password: 'Password',
       rememberMe: 'Remember Me',
       forgotPassword: 'Forgot Password',
       login: 'Login',
-      loading: 'Logging in...',
       features: {
         fast: 'Fast',
         secure: 'Secure',
@@ -208,7 +277,76 @@ export default function LoginPage() {
       settings: 'Settings',
       apiUrl: 'API URL',
       save: 'Save',
-      close: 'Close'
+      registerStudent: 'Student Register',
+      registerTitle: 'Student Registration Form',
+      registerDescription: 'Please fill in the information below to create your account.',
+      registerCtaTitle: 'New Student?',
+      registerCtaDescription: 'Register now to access your courses and simplify attendance tracking.',
+      modal: {
+        personalInfo: 'Personal Information',
+        facePhoto: 'Face Photo',
+        selectCourses: 'Select Courses',
+        noPhotoSelected: 'No photo selected or camera is off.',
+        noCoursesAvailable: 'No courses found to list.',
+      },
+      form: {
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        email: 'Email',
+        password: 'Password',
+        studentNumber: 'Student Number',
+        department: 'Department',
+      },
+      placeholders: {
+        firstName: "John",
+        lastName: "Doe",
+        email: "john.doe@example.edu",
+        studentNumber: "2024123456",
+        department: "Computer Engineering",
+      },
+      buttons: {
+        closeCamera: 'Close Camera',
+        openCamera: 'Open Camera',
+        uploadPhoto: 'Upload File (.jpg, .png)',
+        takePhoto: 'Take Photo',
+        resetPhoto: 'Reset Photo',
+        registering: 'Registering...',
+        registerAndEnroll: 'Register and Enroll',
+        newRegistration: 'New Registration',
+        close: 'Close',
+      },
+      loading: {
+        courses: 'Loading courses...',
+      },
+      errors: {
+        fetchCoursesFailed: 'Failed to load courses.',
+        photoRequired: 'Face photo must be uploaded.',
+        courseRequired: 'At least one course must be selected.',
+        registerFailed: 'Student registration failed. Please check the information or try again later.',
+        missingStudentId: 'Required information could not be retrieved after registration. Please try again.',
+        photoUploadFailed: 'Failed to upload face photo. Check file format or size.',
+        photoUploadFailedShort: 'Photo upload error',
+        enrollmentFailedGeneric: 'Error occurred during enrollment for one or more courses.',
+        someEnrollmentsFailed: 'Failed to enroll in some courses:',
+        unknownEnrollmentError: 'Unknown course enrollment error.',
+        enrollmentFailedShort: 'Course enrollment error',
+        registerFailedShort: 'Registration error',
+        fileSizeError: "File size cannot exceed 5MB.",
+        fileTypeError: "Only JPG or PNG files are accepted.",
+        cameraAccessError: "Camera access denied or an error occurred.",
+        cameraPlayError: "Could not start camera. Try interacting with the page.",
+      },
+      success: {
+        registrationComplete: 'Registration completed successfully!',
+      },
+      steps: {
+        registeringStudent: 'Registering student...',
+        uploadingPhoto: 'Uploading face photo...',
+        enrollingCourses: 'Enrolling in courses...'
+      },
+      alt: {
+        photoPreview: 'Photo Preview'
+      }
     }
   }
 
@@ -221,6 +359,11 @@ export default function LoginPage() {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
+
+  // Modal'ı kapatma (state sıfırlama RegisterStudentModal içinde yapılıyor)
+  const handleCloseRegisterModal = () => {
+    setShowRegisterModal(false);
+  };
 
   // Animasyon varyantları
   const containerVariants = {
@@ -553,8 +696,13 @@ export default function LoginPage() {
       >
         <div className="mx-auto w-full max-w-sm"> 
           <motion.div variants={itemVariants} className="mb-8 text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-gray-800 dark:text-white">{t.welcomeBack}</h2>
-            <p className="mt-2 text-gray-700 dark:text-gray-300">
+            {/* Daha şık başlık */}
+            <h2 className="text-4xl font-extrabold tracking-tighter text-gray-900 dark:text-transparent dark:bg-clip-text dark:bg-gradient-to-r dark:from-blue-400 dark:to-emerald-400 mb-3">
+              {t.welcomeBack}
+            </h2>
+             {/* Ayırıcı */}
+             <div className="w-20 h-1 bg-gradient-to-r from-primary to-emerald-500 mx-auto mb-4 rounded-full"></div>
+            <p className="text-md text-gray-600 dark:text-gray-400">
               {t.loginPrompt}
             </p>
           </motion.div>
@@ -711,7 +859,7 @@ export default function LoginPage() {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  <span>{t.loading}</span>
+                  <span>{t.loading.courses}</span>
                 </>
               ) : (
                 <>
@@ -721,6 +869,28 @@ export default function LoginPage() {
               )}
             </motion.button>
           </motion.form>
+
+          {/* Öğrenci Kayıt Ol Butonu/Linki -> Kutu İçine Alındı */}
+          <motion.div
+            variants={itemVariants}
+            className="mt-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-5 text-center shadow-sm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="text-md font-semibold text-gray-800 dark:text-gray-200 mb-2">{t.registerCtaTitle}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{t.registerCtaDescription}</p>
+            <motion.button
+              onClick={() => setShowRegisterModal(true)}
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-gradient-to-r from-green-500 to-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-md transition-all hover:from-green-600 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              whileHover={{ scale: 1.05, boxShadow: "0px 5px 15px rgba(74, 222, 128, 0.4)" }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <UserPlus className="h-4 w-4" />
+              {t.registerStudent}
+            </motion.button>
+          </motion.div>
+
         </div>
       </motion.div>
 
@@ -845,6 +1015,14 @@ export default function LoginPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Yeni Öğrenci Kayıt Modal'ı */}
+      <RegisterStudentModal
+         isOpen={showRegisterModal}
+         onClose={handleCloseRegisterModal}
+         apiUrl={apiUrl}
+         t={t}
+      />
 
     </div>
   )

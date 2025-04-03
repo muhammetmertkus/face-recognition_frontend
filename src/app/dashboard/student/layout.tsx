@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, Suspense } from 'react' // useRef ve Suspense eklendi
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -65,10 +65,33 @@ export default function TeacherLayout({
     const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
     const [mounted, setMounted] = useState(false)
     const [openPopoverMenu, setOpenPopoverMenu] = useState<string | null>(null); // Popover state'i
+    const searchParams = useSearchParams(); // Hook'u burada çağır
+    const router = useRouter(); // Hook'u burada çağır
 
     // Ref'ler popover dışına tıklamayı algılamak için (isteğe bağlı, overlay daha basit olabilir)
     const popoverRef = useRef<HTMLDivElement>(null);
     const sidebarRef = useRef<HTMLElement>(null);
+
+    // --- Add this useEffect for the refresh logic ---
+    useEffect(() => {
+        const fromLogin = searchParams.get('fromLogin');
+        if (fromLogin === 'true') {
+            const timer = setTimeout(() => {
+                // Parametreyi kaldırarak refresh yap (router.replace ile)
+                const nextPath = pathname; // Mevcut path
+                // console.log(`Refreshing ${nextPath} after redirect from login...`);
+                // router.replace(nextPath, { scroll: false }); // Parametresiz aynı sayfaya git
+
+                // EĞER KESİN TAM YENİLEME GEREKİYORSA, YUKARIDAKİ SATIR YERİNE:
+                console.log(`Reloading ${pathname} after redirect from login via window.location...`);
+                window.location.href = nextPath; // Tam sayfa yenilemesi için bu satırı aktif ettim
+
+            }, 500); // 0.5 saniye bekle
+
+            return () => clearTimeout(timer); // Cleanup
+        }
+    }, [searchParams, router, pathname]); // Bağımlılıklara ekle
+    // --- End of refresh logic useEffect ---
 
     // i18n durumunu kontrol etmek için log eklendi
     useEffect(() => {

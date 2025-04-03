@@ -26,22 +26,27 @@ type FormData = {
 type ProcessedStudent = {
   student_id: number;
   status: 'PRESENT' | 'ABSENT';
-  confidence: number;
-  emotion?: string;
-  estimated_age?: number;
-  estimated_gender?: string;
-  first_name?: string;
-  last_name?: string;
-  student_number?: string;
+  confidence: number | null;
+  emotion?: string | null;
+  estimated_age?: number | null;
+  estimated_gender?: string | null;
+  student: {
+    id: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+    student_number: string;
+  };
 }
 
 type AttendanceResult = {
   attendance_id: number;
   recognized_count: number;
   unrecognized_count: number;
+  total_students: number;
   emotion_statistics?: {
     [key: string]: number;
-  };
+  } | null;
   results: ProcessedStudent[];
 }
 
@@ -431,19 +436,19 @@ export default function NewAttendancePage() {
                 <div className="rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Toplam Öğrenci</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {attendanceResult.results.length} {/* Use results array length */}
+                    {attendanceResult.total_students}
                   </p>
                 </div>
                 <div className="rounded-lg bg-green-50 p-4 text-center dark:bg-green-900/20">
                   <p className="text-sm text-green-600 dark:text-green-400">Var Olan</p>
                   <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                    {attendanceResult.results.filter(s => s.status === 'PRESENT').length}
+                    {attendanceResult.recognized_count}
                   </p>
                 </div>
                 <div className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-900/20">
                   <p className="text-sm text-red-600 dark:text-red-400">Yok Olan</p>
                   <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-                     {attendanceResult.results.filter(s => s.status === 'ABSENT').length}
+                     {attendanceResult.unrecognized_count}
                   </p>
                 </div>
               </div>
@@ -501,52 +506,52 @@ export default function NewAttendancePage() {
                     </thead>
                     <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
                       {attendanceResult.results.length > 0 ? (
-                           attendanceResult.results.map((student) => (
-                            <tr key={student.student_id}>
+                           attendanceResult.results.map((result) => (
+                            <tr key={result.student_id}>
                             <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                                 <div className="flex items-center">
                                 <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 dark:bg-gray-700">
                                     {/* Placeholder Icon or Initials */}
                                     <div className="flex h-full w-full items-center justify-center">
                                     <span className="text-xs font-medium uppercase text-gray-600 dark:text-gray-300">
-                                        {student.first_name?.[0]}{student.last_name?.[0] || '?'}
+                                        {result.student?.first_name?.[0]}{result.student?.last_name?.[0] || '?'}
                                     </span>
                                     </div>
                                 </div>
                                 <div className="ml-3">
                                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {student.first_name || 'Bilinmeyen'} {student.last_name || `(${student.student_id})`}
+                                    {result.student?.first_name || 'Bilinmeyen'} {result.student?.last_name || `(${result.student_id})`}
                                     </div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                                    {student.student_number || '-'}
+                                    {result.student?.student_number || '-'}
                                     </div>
                                 </div>
                                 </div>
                             </td>
                             <td className="whitespace-nowrap px-4 py-4 sm:px-6">
                                 <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                                student.status === 'PRESENT'
+                                result.status === 'PRESENT'
                                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                                     : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
                                 }`}>
-                                {student.status === 'PRESENT' ? 'Var' : 'Yok'}
+                                {result.status === 'PRESENT' ? 'Var' : 'Yok'}
                                 </span>
                             </td>
                             <td className="hidden whitespace-nowrap px-4 py-4 text-sm text-gray-500 dark:text-gray-400 sm:table-cell sm:px-6">
-                                {student.confidence ? `%${Math.round(student.confidence * 100)}` : '-'}
+                                {result.confidence ? `%${Math.round(result.confidence * 100)}` : '-'}
                             </td>
                              {/* Conditional Data Cells */}
                              {attendanceResult.results.some(s => s.emotion || s.estimated_age || s.estimated_gender) && (
                                 <>
                                 <td className="hidden whitespace-nowrap px-4 py-4 text-sm capitalize text-gray-500 dark:text-gray-400 md:table-cell sm:px-6">
-                                    {student.emotion || '-'}
+                                    {result.emotion || '-'}
                                 </td>
                                 <td className="hidden whitespace-nowrap px-4 py-4 text-sm text-gray-500 dark:text-gray-400 lg:table-cell sm:px-6">
-                                    {student.estimated_age || '-'}
+                                    {result.estimated_age || '-'}
                                 </td>
                                 <td className="hidden whitespace-nowrap px-4 py-4 text-sm text-gray-500 dark:text-gray-400 lg:table-cell sm:px-6">
-                                    {student.estimated_gender === 'Woman' ? 'Kadın' :
-                                    student.estimated_gender === 'Man' ? 'Erkek' : (student.estimated_gender || '-')}
+                                    {result.estimated_gender === 'Woman' ? 'Kadın' :
+                                    result.estimated_gender === 'Man' ? 'Erkek' : (result.estimated_gender || '-')}
                                 </td>
                                 </>
                              )}
