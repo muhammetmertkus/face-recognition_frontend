@@ -33,6 +33,14 @@ export default function StudentCoursesPage() {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-0ea9f.up.railway.app';
 
+    // Tüm fetch istekleri için ortak headers
+    const commonHeaders = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin,
+    };
+
     // Kullanıcı bilgisi geldiğinde student_id'yi state'e al
     useEffect(() => {
         if (user?.student_id) {
@@ -42,10 +50,7 @@ export default function StudentCoursesPage() {
             const fetchMeData = async () => {
                 try {
                     const response = await fetch(`${apiUrl}/api/auth/me`, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Accept': 'application/json',
-                        },
+                        headers: commonHeaders,
                     });
                     if (!response.ok) {
                          const errorData = await response.json().catch(() => ({}));
@@ -88,10 +93,7 @@ export default function StudentCoursesPage() {
         try {
             const response = await fetch(`${apiUrl}/api/students/${studentId}/courses`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
+                headers: commonHeaders,
             });
 
             if (!response.ok) {
@@ -119,10 +121,7 @@ export default function StudentCoursesPage() {
         try {
             const response = await fetch(`${apiUrl}/api/courses/`, {
                 method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
-                },
+                headers: commonHeaders,
             });
 
             if (!response.ok) {
@@ -164,11 +163,7 @@ export default function StudentCoursesPage() {
         try {
             const response = await fetch(`${apiUrl}/api/courses/${courseId}/students`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
+                headers: commonHeaders,
                 body: JSON.stringify({ student_id: studentId }),
             });
 
