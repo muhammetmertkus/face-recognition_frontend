@@ -103,7 +103,10 @@
         "totalCourses": "Total Courses",
         "averageAttendance": "Avg. Attendance",
         "totalClasses": "Total Sessions",
-        "attendedClasses": "Attended Sessions"
+        "attendedClasses": "Attended Sessions",
+        "avgAttendance": "Avg. Attendance",
+        "totalSessions": "Total Sessions",
+        "totalAttendance": "Total Attendance"
     },
     "courses": {
         "title": "My Courses",

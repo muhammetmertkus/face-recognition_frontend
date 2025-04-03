@@ -103,7 +103,10 @@
         "totalCourses": "Toplam Ders",
         "averageAttendance": "Ort. Katılım",
         "totalClasses": "Toplam Oturum",
-        "attendedClasses": "Katıldığı Oturum"
+        "attendedClasses": "Katıldığı Oturum",
+        "totalSessions": "Toplam Oturum",
+        "totalAttendance": "Toplam Katılım",
+        "avgAttendance": "Ortalama Katılım"
     },
     "courses": {
         "title": "Derslerim",

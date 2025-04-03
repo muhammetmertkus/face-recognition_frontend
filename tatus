@@ -1,0 +1,5 @@
+[33mb3004a5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m fix: CORS ayarları güncellendi ve login işlemi iyileştirildi
+[33mddf3044[m fix: CORS ayarları güncellendi
+[33meaebf36[m fix: CORS sorunu çözüldü ve API URL güncellendi
+[33m20855c9[m refactor: Update student courses page and auth provider
+[33m5f9339a[m feat: Add student dashboard, translations, and Netlify setup
