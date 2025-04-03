@@ -152,8 +152,33 @@ export default function LoginPage() {
   })
 
   const onSubmit = async (data: LoginValues) => {
-    await login(data.email, data.password)
-  }
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+        mode: 'cors',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Giriş başarısız');
+      }
+
+      const result = await response.json();
+      await login(data.email, data.password);
+      
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
 
   const saveApiUrl = () => {
     setShowSettings(false)

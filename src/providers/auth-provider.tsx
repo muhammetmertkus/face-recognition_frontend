@@ -87,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
        setRole(null);
        setTeacherId(null);
        setToken(null);
-       return; // Token yoksa işlemi sonlandır
+       return;
     }
 
     setToken(storedToken);
@@ -95,34 +95,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await fetch(`${apiUrl}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${storedToken}`,
-          'Accept': 'application/json'
-        }
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        credentials: 'include',
       });
       
       if (!response.ok) {
          throw new Error('Token validation failed during refresh');
       }
 
-      // Hem teacher_id hem de student_id gelebilir
       const userData: User & { teacher_id?: number; student_id?: number } = await response.json(); 
 
       if (userData) {
         setUser(userData);
         setRole(userData.role);
         setTeacherId(userData.role === 'TEACHER' ? userData.teacher_id || null : null);
-        // student_id user arayüzünde olduğu için ekstra bir state'e gerek yok
       } else {
          throw new Error('No user data found during refresh');
       }
     } catch (error) {
        console.error("User refresh failed:", error);
-       // Başarısız olursa token'ı temizle ve logout yap (opsiyonel)
        localStorage.removeItem('access_token');
        setToken(null);
        setUser(null);
        setRole(null);
        setTeacherId(null);
-       // router.push('/auth/login'); // Otomatik yönlendirme opsiyonel
     }
   };
 
@@ -156,28 +155,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null)
     
     try {
-      const response = await fetch(`${apiUrl}/api/auth/login`, { // apiUrl kullanıldı
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email, password }), // Sadece email ve password gönderiliyor
+        body: JSON.stringify({ email, password }),
+        mode: 'cors',
+        credentials: 'include',
       })
 
       if (!response.ok) {
-        // Hata durumunu daha detaylı yönetebiliriz
         let errorMessage = `Giriş başarısız: ${response.statusText}`;
         try {
            const errorData = await response.json();
            errorMessage = errorData.message || errorData.detail || errorMessage;
         } catch (e) {
-           // JSON parse hatası olursa varsayılan mesajı kullan
         }
         throw new Error(errorMessage);
       }
 
-      // teacher_id bekliyoruz
       const data: { access_token: string, user: User & { teacher_id?: number } } = await response.json() 
       
       const { access_token, user: userData } = data
@@ -193,25 +191,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
          setTeacherId(null);
       }
 
-      // *** Yönlendirme öncesi sessionStorage'a işaret ekle ***
       sessionStorage.setItem('needsDashboardRefresh', 'true');
 
-      // Rol tabanlı yönlendirme
       if (userData.role === 'TEACHER') {
         router.push('/dashboard/teacher')
       } else if (userData.role === 'STUDENT') {
         router.push('/dashboard/student')
-      } else {
-         router.push('/dashboard') 
       }
-      
-    } catch (error: any) {
-      setError(error.message || 'Sunucu bağlantı hatası veya giriş hatası')
-      localStorage.removeItem('access_token');
-      setToken(null) // Token state'ini temizle
-      setUser(null);
-      setRole(null);
-      setTeacherId(null); // Hata durumunda teacherId'yi sıfırla
+    } catch (err) {
+      console.error('Login error:', err)
+      setError(err instanceof Error ? err.message : 'Giriş başarısız')
     } finally {
       setLoading(false)
     }
