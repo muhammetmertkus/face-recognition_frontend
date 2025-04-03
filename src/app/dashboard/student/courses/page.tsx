@@ -33,12 +33,16 @@ export default function StudentCoursesPage() {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-0ea9f.up.railway.app';
 
-    // Tüm fetch istekleri için ortak headers
+    // Tüm fetch istekleri için ortak headers ve options
     const commonHeaders = {
         'Authorization': `Bearer ${token}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Origin': window.location.origin,
+    };
+
+    const fetchOptions = {
+        mode: 'cors' as RequestMode,
+        credentials: 'include' as RequestCredentials,
     };
 
     // Kullanıcı bilgisi geldiğinde student_id'yi state'e al
@@ -50,6 +54,7 @@ export default function StudentCoursesPage() {
             const fetchMeData = async () => {
                 try {
                     const response = await fetch(`${apiUrl}/api/auth/me`, {
+                        ...fetchOptions,
                         headers: commonHeaders,
                     });
                     if (!response.ok) {
@@ -92,6 +97,7 @@ export default function StudentCoursesPage() {
         setErrorEnrolled(null);
         try {
             const response = await fetch(`${apiUrl}/api/students/${studentId}/courses`, {
+                ...fetchOptions,
                 method: 'GET',
                 headers: commonHeaders,
             });
@@ -120,6 +126,7 @@ export default function StudentCoursesPage() {
         setErrorAll(null);
         try {
             const response = await fetch(`${apiUrl}/api/courses/`, {
+                ...fetchOptions,
                 method: 'GET',
                 headers: commonHeaders,
             });
@@ -162,6 +169,7 @@ export default function StudentCoursesPage() {
 
         try {
             const response = await fetch(`${apiUrl}/api/courses/${courseId}/students`, {
+                ...fetchOptions,
                 method: 'POST',
                 headers: commonHeaders,
                 body: JSON.stringify({ student_id: studentId }),
