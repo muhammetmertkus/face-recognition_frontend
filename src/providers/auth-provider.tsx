@@ -194,9 +194,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem('needsDashboardRefresh', 'true');
 
       if (userData.role === 'TEACHER') {
-        router.push('/dashboard/teacher')
+        router.push('/dashboard/teacher');
       } else if (userData.role === 'STUDENT') {
-        router.push('/dashboard/student')
+        router.push('/dashboard/student');
+        // Force refresh after a short delay to ensure data loads
+        setTimeout(() => {
+          window.location.reload();
+        }, 150); // 150ms delay
       }
     } catch (err) {
       console.error('Login error:', err)
@@ -237,4 +241,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   )
-} 
+}

@@ -17,7 +17,8 @@ interface Course {
 
 export default function StudentCoursesPage() {
     const { t } = useTranslation();
-    const { user, token } = useAuth();
+    // Destructure loading state as authLoading
+    const { user, token, loading: authLoading } = useAuth();
     const [enrolledCourses, setEnrolledCourses] = useState<Course[]>([]);
     const [allCourses, setAllCourses] = useState<Course[]>([]);
     const [isLoadingEnrolled, setIsLoadingEnrolled] = useState(true);
@@ -31,7 +32,7 @@ export default function StudentCoursesPage() {
     const [enrollError, setEnrollError] = useState<string | null>(null);
     const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-0ea9f.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000';
 
     // Tüm fetch istekleri için ortak headers ve options
     const commonHeaders = {
@@ -45,13 +46,17 @@ export default function StudentCoursesPage() {
         credentials: 'include' as RequestCredentials,
     };
 
-    // Kullanıcı bilgisi geldiğinde student_id'yi state'e al
+    // Kullanıcı bilgisi geldiğinde student_id'yi state'e al (Wait for authLoading)
     useEffect(() => {
+        if (authLoading) return; // Wait for auth provider
+
         if (user?.student_id) {
             setStudentId(user.student_id);
         } else if (user && !user.student_id && token) {
             // /api/auth/me çağrısı ile student_id'yi almayı dene
             const fetchMeData = async () => {
+                setIsLoadingEnrolled(true); // Indicate loading while fetching student_id
+                setIsLoadingAll(true);
                 try {
                     const response = await fetch(`${apiUrl}/api/auth/me`, {
                         ...fetchOptions,
@@ -77,21 +82,22 @@ export default function StudentCoursesPage() {
                     setErrorEnrolled(errorMessage);
                     setErrorAll(errorMessage);
                     setIsLoadingEnrolled(false);
-                    setIsLoadingAll(false);
+                    // No need to set loading false here, main fetch effects will handle it
                 }
             };
             fetchMeData();
-        } else if (!token && !user) {
+        } else if (!token && !user && !authLoading) { // Check authLoading here too
              setIsLoadingEnrolled(false);
              setIsLoadingAll(false);
              setErrorEnrolled(t('courses.error.missingAuth', 'Giriş yapmalısınız.'));
              setErrorAll(t('courses.error.missingAuth', 'Giriş yapmalısınız.'));
         }
-    }, [user, token, t, apiUrl]);
+    }, [authLoading, user, token, t, apiUrl]); // Add authLoading dependency
 
     // Kayıtlı dersleri çekme fonksiyonu
     const fetchEnrolledCourses = useCallback(async () => {
-        if (!studentId || !token) return;
+        // Wait for auth and studentId
+        if (authLoading || !studentId || !token) return;
 
         setIsLoadingEnrolled(true);
         setErrorEnrolled(null);
@@ -120,7 +126,8 @@ export default function StudentCoursesPage() {
 
     // Tüm dersleri çekme fonksiyonu
     const fetchAllCourses = useCallback(async () => {
-         if (!token) return;
+         // Wait for auth and token
+         if (authLoading || !token) return;
 
         setIsLoadingAll(true);
         setErrorAll(null);
@@ -147,14 +154,14 @@ export default function StudentCoursesPage() {
         }
     }, [token, t, apiUrl]);
 
-    // studentId veya token değiştiğinde ilgili verileri çek
+    // studentId veya token veya authLoading değiştiğinde ilgili verileri çek
     useEffect(() => {
         fetchEnrolledCourses();
-    }, [fetchEnrolledCourses]);
+    }, [fetchEnrolledCourses, authLoading]); // Add authLoading dependency
 
     useEffect(() => {
         fetchAllCourses();
-    }, [fetchAllCourses]);
+    }, [fetchAllCourses, authLoading]); // Add authLoading dependency
 
     // Derse Kayıt Olma Fonksiyonu
     const handleEnroll = async (courseId: number) => {
@@ -202,19 +209,26 @@ export default function StudentCoursesPage() {
         return allCourses.filter(course => !enrolledCourseIds.has(course.id));
     }, [allCourses, enrolledCourses]);
 
-    const isLoading = isLoadingEnrolled || isLoadingAll;
+    // Combine loading states including authLoading
+    const isLoading = authLoading || isLoadingEnrolled || isLoadingAll;
     const error = errorEnrolled || errorAll;
+
+    // Show main loader if auth is loading
+    if (authLoading) {
+        return (
+            <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+                <span className="ml-2 text-lg">{t('courses.loading', 'Yükleniyor...')}</span>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
 
-
-            {isLoading && !error && (
-                <div className="flex justify-center items-center py-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
-                    <span className="ml-2 text-lg">{t('courses.loading', 'Dersler Yükleniyor...')}</span>
-                </div>
-            )}
+            {/* Keep internal loading indicators but rely on authLoading for initial block */}
+            {/* {isLoading && !error && ( ... )}  <- This can be removed or kept for finer control */}
+                {/* Removed the stray closing brace from the line below */}
 
             {error && (
                 <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/30 rounded-md text-red-700 dark:text-red-300">
@@ -368,4 +382,4 @@ export default function StudentCoursesPage() {
   },
   "student": "Öğrenci"
 }
-*/ 
+*/

@@ -5,7 +5,8 @@
   },
   "header": {
     "greeting": "Hello, {{firstName}} {{lastName}}",
-    "studentGreeting": "Welcome to the Student Portal, {{firstName}}",
+    "studentGreeting": "Welcome to the Student Portal, {{firstName}} {{lastName}}",
+    "teacherGreeting": "Welcome to the Teacher Portal, {{firstName}} {{lastName}}",
     "tooltips": {
       "openMenu": "Open Menu",
       "changeLanguage": "Change Language"

@@ -5,7 +5,8 @@
   },
   "header": {
     "greeting": "Merhaba, {{firstName}} {{lastName}}",
-    "studentGreeting": "Öğrenci Portalına Hoş Geldin, {{firstName}} ",
+    "studentGreeting": "Öğrenci Portalına Hoş Geldin, {{firstName}} {{lastName}}",
+    "teacherGreeting": "Öğretmen Portalına Hoş Geldin, {{firstName}} {{lastName}}",
     "tooltips": {
       "openMenu": "Menüyü Aç",
       "changeLanguage": "Dili Değiştir"

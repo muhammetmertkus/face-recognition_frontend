@@ -49,9 +49,10 @@ interface AttendanceResponse {
 // interface UpcomingLesson { ... }
 
 export default function StudentDashboard() {
-  const { user, token, apiUrl } = useAuth()
+  // Destructure loading state from useAuth
+  const { user, token, apiUrl, loading: authLoading } = useAuth()
   const { t } = useTranslation()
-  const [studentId, setStudentId] = useState<number | null>(null)
+  // Remove separate studentId state, use user?.student_id directly
 
   // Loading states
   const [isLoadingCourses, setIsLoadingCourses] = useState(true)
@@ -65,33 +66,44 @@ export default function StudentDashboard() {
   const [allAttendanceDetails, setAllAttendanceDetails] = useState<AttendanceDetail[]>([])
   // const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]); // Kaldırıldı
 
-  // Student ID'yi al
-  useEffect(() => {
-    if (user?.student_id) {
-      setStudentId(user.student_id)
-    } else if (user && !user.student_id) {
-      // /api/auth/me tekrar çağrılabilir ama AuthProvider bunu zaten yapıyor olmalı.
-      // Kullanıcı bilgisi geldi ama student_id yoksa bir sorun var demektir.
-      console.error("Kullanıcı bilgisi yüklendi ancak student_id bulunamadı.")
-      setError(t('dashboard.error.missingStudentId'))
-      setIsLoadingCourses(false)
-    }
-  }, [user, t])
-
   // Dersleri ve yoklamaları çek
   useEffect(() => {
-    if (!studentId || !token) return
+    // Wait for auth provider to finish loading AND user/token to be available
+    if (authLoading || !user?.student_id || !token) {
+      // If auth is still loading, just wait.
+      // If auth finished but user/token/student_id is missing, handle error or wait state.
+      if (!authLoading && user && !user.student_id) {
+        console.error("Auth loaded, but user has no student_id.")
+        setError(t('dashboard.error.missingStudentId'))
+        setIsLoadingCourses(false);
+        setIsLoadingAttendance(false);
+      } else if (!authLoading && (!user || !token)) {
+         // Auth finished, but user/token still missing (e.g., not logged in)
+         // This case might be handled by routing, but set loading false just in case.
+         setIsLoadingCourses(false);
+         setIsLoadingAttendance(false);
+      } else {
+         // Still waiting for authLoading to become false
+         setIsLoadingCourses(true);
+         setIsLoadingAttendance(true);
+      }
+      return;
+    }
+
+    // Get studentId directly from user object now that we know it exists
+    const currentStudentId = user.student_id;
 
     const fetchAllData = async () => {
-      setIsLoadingCourses(true)
+      // Start loading indicators now that we are actually fetching
+      setIsLoadingCourses(true);
       setIsLoadingAttendance(true)
       setError(null)
       let fetchedCourses: ApiCourse[] = []
       let fetchedAttendance: AttendanceDetail[] = []
 
       try {
-        // 1. Dersleri Çek
-        const coursesResponse = await fetch(`${apiUrl}/api/students/${studentId}/courses`, {
+        // 1. Dersleri Çek (Use currentStudentId)
+        const coursesResponse = await fetch(`${apiUrl}/api/students/${currentStudentId}/courses`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
         })
         if (!coursesResponse.ok) {
@@ -107,10 +119,10 @@ export default function StudentDashboard() {
           return // Ders yoksa devam etme
         }
 
-        // 2. Her ders için yoklamayı çek
+        // 2. Her ders için yoklamayı çek (Use currentStudentId)
         const attendancePromises = fetchedCourses.map(async (course) => {
           try {
-            const attendanceResponse = await fetch(`${apiUrl}/api/attendance/course/${course.id}/student/${studentId}`, {
+            const attendanceResponse = await fetch(`${apiUrl}/api/attendance/course/${course.id}/student/${currentStudentId}`, {
               headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
             })
             if (!attendanceResponse.ok) {
@@ -159,7 +171,8 @@ export default function StudentDashboard() {
     }
 
     fetchAllData()
-  }, [studentId, token, apiUrl, t])
+    // Add authLoading to dependency array
+  }, [authLoading, user, token, apiUrl, t])
 
   // Hesaplanan İstatistikler (useMemo ile optimize edilebilir)
   const stats = useMemo(() => {
@@ -190,8 +203,17 @@ export default function StudentDashboard() {
       .slice(0, 5) // Son 5 kaydı al
   }, [allAttendanceDetails])
 
-  // Genel Loading durumu (dersler VEYA yoklamalar yükleniyorsa)
-  const isLoading = isLoadingCourses || isLoadingAttendance
+  // Combined loading state: Auth loading OR data fetching loading
+  const isLoading = authLoading || isLoadingCourses || isLoadingAttendance;
+
+  // If AuthProvider is loading, show a full page loader
+  if (authLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -435,4 +457,4 @@ export default function StudentDashboard() {
       </section>
     </div>
   )
-} 
+}

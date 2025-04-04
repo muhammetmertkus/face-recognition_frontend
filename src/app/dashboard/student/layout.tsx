@@ -50,8 +50,7 @@ interface SubmenuItemProps {
     onClick?: () => void
 }
 
-
-export default function TeacherLayout({
+export default function StudentLayout({
     children,
 }: {
     children: React.ReactNode
@@ -72,30 +71,9 @@ export default function TeacherLayout({
     const popoverRef = useRef<HTMLDivElement>(null);
     const sidebarRef = useRef<HTMLElement>(null);
 
-    // --- Add this useEffect for the refresh logic ---
-    useEffect(() => {
-        const fromLogin = searchParams.get('fromLogin');
-        if (fromLogin === 'true') {
-            const timer = setTimeout(() => {
-                // Parametreyi kaldırarak refresh yap (router.replace ile)
-                const nextPath = pathname; // Mevcut path
-                // console.log(`Refreshing ${nextPath} after redirect from login...`);
-                // router.replace(nextPath, { scroll: false }); // Parametresiz aynı sayfaya git
-
-                // EĞER KESİN TAM YENİLEME GEREKİYORSA, YUKARIDAKİ SATIR YERİNE:
-                console.log(`Reloading ${pathname} after redirect from login via window.location...`);
-                window.location.href = nextPath; // Tam sayfa yenilemesi için bu satırı aktif ettim
-
-            }, 500); // 0.5 saniye bekle
-
-            return () => clearTimeout(timer); // Cleanup
-        }
-    }, [searchParams, router, pathname]); // Bağımlılıklara ekle
-    // --- End of refresh logic useEffect ---
-
     // i18n durumunu kontrol etmek için log eklendi
     useEffect(() => {
-        console.log("TeacherLayout i18n status:", {
+        console.log("StudentLayout i18n status:", {
             isInitialized: i18n.isInitialized,
             language: i18n.language,
             languages: i18n.languages,
@@ -189,8 +167,29 @@ export default function TeacherLayout({
 
     const flagSize = "w-5 h-5 rounded-full object-cover";
 
-    // Sidebar Items (Değişiklik Yok)
-    const sidebarItems = [ { icon: <Home size={20} />, label: 'sidebar.home', href: '/dashboard/teacher', submenu: null }, { icon: <BookOpen size={20} />, label: 'sidebar.courses', href: '/dashboard/teacher/courses', submenu: [ { icon: <PlusCircle size={18} />, label: 'sidebar.coursesNew', href: '/dashboard/teacher/courses/new' }, { icon: <BookOpen size={18} />, label: 'sidebar.coursesList', href: '/dashboard/teacher/courses' } ] }, { icon: <ClipboardCheck size={20} />, label: 'sidebar.attendance', href: '/dashboard/teacher/attendance', submenu: [ { icon: <PlusCircle size={18} />, label: 'sidebar.attendanceNew', href: '/dashboard/teacher/attendance/new' }, { icon: <Calendar size={18} />, label: 'sidebar.attendanceHistory', href: '/dashboard/teacher/attendance/history' }, { icon: <Clock size={18} />, label: 'Devamsızlık Raporu', href: '/dashboard/teacher/attendance/reports' } ] }, { icon: <Users size={20} />, label: 'sidebar.students', href: '/dashboard/teacher/students', submenu: [ { icon: <PlusCircle size={18} />, label: 'sidebar.studentsNew', href: '/dashboard/teacher/students/new' }, { icon: <User size={18} />, label: 'sidebar.studentsList', href: '/dashboard/teacher/students' } ] }, { icon: <Settings size={20} />, label: 'sidebar.settings', href: '/dashboard/teacher/settings', submenu: null } ];
+    // Explicit types for sidebar items
+    interface SubMenuItem {
+        icon: React.ReactNode;
+        label: string;
+        href: string;
+    }
+
+    interface SidebarItemType {
+        icon: React.ReactNode;
+        label: string;
+        href: string;
+        submenu: SubMenuItem[] | null; // Explicitly allow null
+    }
+
+    // --- Student Sidebar Items ---
+    const sidebarItems: SidebarItemType[] = [ // Add explicit type annotation
+        { icon: <Home size={20} />, label: 'sidebar.home', href: '/dashboard/student', submenu: null },
+        { icon: <BookOpen size={20} />, label: 'sidebar.courses', href: '/dashboard/student/courses', submenu: null }, // Assuming no submenus for student courses view
+        { icon: <ClipboardCheck size={20} />, label: 'sidebar.attendance', href: '/dashboard/student/attendance', submenu: null }, // Assuming no submenus for student attendance view
+        { icon: <Settings size={20} />, label: 'sidebar.settings', href: '/dashboard/student/settings', submenu: null }
+    ];
+    // Note: Removed teacher-specific items like 'Students' and submenus for 'New Course', 'New Attendance', etc.
+    // Adjust labels (e.g., 'sidebar.myCourses') and hrefs if needed based on your i18n keys and actual routes.
 
     // --- SidebarItem Bileşeni Güncellemesi ---
     const SidebarItem = ({ icon, label, href, isActive, isExpanded, hasSubmenu, onClick, onPopoverToggle, isPopoverOpen }: SidebarItemProps) => {
@@ -367,17 +366,17 @@ export default function TeacherLayout({
             >
                 {/* Sidebar Header */} 
                 <div className="flex h-16 items-center justify-between border-b border-gray-200 px-4 dark:border-gray-700 flex-shrink-0">
-                    {/* FR Logo when collapsed */} 
+                    {/* FR Logo when collapsed */}
                     {!isSidebarExpanded && !isMobileMenuOpen && (
-                        <Link href="/dashboard/teacher" className="flex items-center justify-center py-4">
+                        <Link href="/dashboard/student" className="flex items-center justify-center py-4"> {/* Link to student dashboard */}
                            <div className="h-8 w-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-bold text-lg">
                              FR
                            </div>
                         </Link>
                     )}
-                    {/* Full App Name when expanded or in mobile view */} 
+                    {/* Full App Name when expanded or in mobile view */}
                     {(isSidebarExpanded || isMobileMenuOpen) && (
-                        <Link href="/dashboard/teacher" className="flex items-center justify-start py-4 pl-1 pr-2"> {/* Adjusted padding/alignment */} 
+                        <Link href="/dashboard/student" className="flex items-center justify-start py-4 pl-1 pr-2"> {/* Link to student dashboard */}
                             <motion.div
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -398,7 +397,8 @@ export default function TeacherLayout({
                 <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
                     <ul className="space-y-1">
                         {sidebarItems.map((item, index) => {
-                            const isActive = pathname === item.href || (item.href !== '/dashboard/teacher' && pathname.startsWith(item.href + '/'));
+                            // Updated isActive check for student base path
+                            const isActive = pathname === item.href || (item.href !== '/dashboard/student' && pathname.startsWith(item.href + '/'));
                             const hasSubmenu = item.submenu !== null && item.submenu.length > 0;
                             const isCurrentPopoverOpen = openPopoverMenu === item.href;
 
@@ -506,7 +506,7 @@ export default function TeacherLayout({
                 <header className="sticky top-0 z-30 w-full border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between">
                         <button onClick={toggleMobileMenu} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:hidden" aria-label={t('header.tooltips.openMenu')} > <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" /> </button>
-                        <div className="flex-1 lg:ml-4"> <span className="hidden md:inline font-semibold text-lg text-gray-800 dark:text-gray-100"> {t('header.greeting', { firstName: user?.first_name, lastName: user?.last_name })} </span> </div>
+                        <div className="flex-1 lg:ml-4"> <span className="hidden md:inline font-semibold text-lg text-gray-800 dark:text-gray-100"> {t('header.studentGreeting', { firstName: user?.first_name, lastName: user?.last_name })} </span> </div>
                         <div className="flex items-center gap-3">
                             {mounted && ( <> <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleLanguage} className="flex items-center gap-2 rounded-full bg-white/50 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm backdrop-blur-sm transition-all hover:bg-white/70 dark:bg-gray-800/50 dark:text-gray-300 dark:hover:bg-gray-800/70" title={t('header.tooltips.changeLanguage')} > {i18n.language === 'tr' ? ( <> <Image src="/images/tr-flag.png" alt={t('language.tr')} width={20} height={20} className={flagSize} /> <span className="hidden sm:inline">{t('language.tr')}</span> </> ) : ( <> <Image src="/images/en-flag.png" alt={t('language.en')} width={20} height={20} className={flagSize} /> <span className="hidden sm:inline">{t('language.en')}</span> </> )} </motion.button> <ThemeToggleButton theme={theme} toggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')} t={t} /> </> )}
                             <button onClick={logout} className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-red-600 shadow-sm hover:bg-red-50 dark:border-gray-700 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/30" title={t('sidebar.tooltips.logout')} > <LogOut size={20} /> </button>
