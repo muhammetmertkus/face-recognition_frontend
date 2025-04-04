@@ -175,18 +175,21 @@ export default function TeacherLayout({
         const showPopoverCondition = isCollapsed && hasSubmenu;
 
         const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-            if (showPopoverCondition) {
-                e.preventDefault(); // Sayfaya gitmeyi engelle
-                e.stopPropagation(); // Olayın yukarıya yayılmasını durdur (önemli!)
-                onPopoverToggle?.(); // Popover'ı aç/kapat
-            } else if (hasSubmenu && isExpanded) {
-                 e.preventDefault(); // Sayfaya gitmeyi engelle
-                 onClick?.(); // Normal alt menüyü aç/kapat
+            if (hasSubmenu) {
+                e.preventDefault(); // Alt menüsü olan öğelerde sayfaya gitmeyi engelle
+                if (isMobileMenuOpen) {
+                    // Mobil modda normal alt menüyü aç/kapat
+                    onClick?.();
+                } else if (!isExpanded) {
+                    // Dar modda popover'ı aç/kapat
+                    onPopoverToggle?.();
+                } else {
+                    // Geniş modda normal alt menüyü aç/kapat
+                    onClick?.();
+                }
             } else {
-                 // Alt menü yoksa veya mobilse direkt linke git ve menüleri kapat
-                 closeAllMenus(); // Tüm menüleri kapat
-                 // onClick prop'u Link'e taşındığı için burada router.push() gerekebilir veya Link'in doğal davranışı yeterli olur.
-                 // Eğer mobil menüde kapatma gerekiyorsa onClick burada tekrar çağrılabilir.
+                // Alt menü yoksa direkt linke git ve menüleri kapat
+                closeAllMenus();
             }
         };
 
@@ -388,13 +391,20 @@ export default function TeacherLayout({
                                         isActive={isActive}
                                         isExpanded={isSidebarExpanded || isMobileMenuOpen}
                                         hasSubmenu={hasSubmenu}
-                                        // Geniş modda normal alt menü toggle, dar modda popover toggle
-                                        onClick={isSidebarExpanded ? () => toggleSubmenu(item.href) : undefined}
-                                        onPopoverToggle={!isSidebarExpanded && !isMobileMenuOpen ? () => togglePopoverMenu(item.href) : undefined}
+                                        onClick={() => {
+                                            if (isMobileMenuOpen || isSidebarExpanded) {
+                                                toggleSubmenu(item.href);
+                                            }
+                                        }}
+                                        onPopoverToggle={() => {
+                                            if (!isSidebarExpanded && !isMobileMenuOpen) {
+                                                togglePopoverMenu(item.href);
+                                            }
+                                        }}
                                         isPopoverOpen={isCurrentPopoverOpen}
                                     />
 
-                                    {/* Geniş Modda Normal Alt Menü */}
+                                    {/* Alt Menü - Hem mobil hem de masaüstü geniş mod için */}
                                     {(isSidebarExpanded || isMobileMenuOpen) && hasSubmenu && (
                                         <AnimatePresence>
                                             {activeSubmenu === item.href && (
@@ -415,9 +425,14 @@ export default function TeacherLayout({
                                                                 label={subItem.label}
                                                                 href={subItem.href}
                                                                 isActive={isSubActive}
-                                                                onClick={closeAllMenus} // Alt menüye tıklayınca mobil menüyü kapat
+                                                                onClick={() => {
+                                                                    closeAllMenus();
+                                                                    if (isMobileMenuOpen) {
+                                                                        toggleMobileMenu();
+                                                                    }
+                                                                }}
                                                             />
-                                                        )
+                                                        );
                                                     })}
                                                 </motion.ul>
                                             )}
