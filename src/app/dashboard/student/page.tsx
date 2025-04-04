@@ -64,7 +64,7 @@ export default function StudentDashboard() {
       const timerId = setTimeout(() => {
         console.log('StudentDashboard: Sayfa yenileniyor...');
         window.location.reload();
-      }, 1); // 1 milisaniye sonra yenile
+      }, 30); // 1 milisaniye sonra yenile
 
       // Component unmount olursa timeout'u temizle (çok kısa süre için pek olası değil ama iyi pratik)
       return () => clearTimeout(timerId);
