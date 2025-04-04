@@ -1,235 +1,246 @@
-"use client"
+"use client";
 
-import React, { useEffect, useState, useMemo } from 'react'
-import { Book, Clock, Calendar, Award, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react'
-import Link from 'next/link'
-import { useAuth } from '@/providers/auth-provider'
-import { useTranslation } from 'react-i18next'
-import { formatDate, cn, getAttendanceStatusColor } from '@/lib/utils'
+import React, { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation'; // Yönlendirme için eklendi
+import { Book, Clock, Calendar, Award, ArrowRight, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { useAuth } from '@/providers/auth-provider';
+import { useTranslation } from 'react-i18next';
+import { formatDate, cn, getAttendanceStatusColor } from '@/lib/utils';
 
-// Kurs tipi tanımı (API yanıtına uygun)
+// --- Interface Tanımları ---
 interface ApiCourse {
-  id: number
-  code: string
-  name: string
-  semester: string
-  // teacher_id vb. API'den gelebilir ama burada kullanmayacağız
+  id: number;
+  code: string;
+  name: string;
+  semester: string;
 }
 
-// Gösterim için Kurs tipi (hesaplanan attendance_rate ile)
 interface DisplayCourse extends ApiCourse {
-  attendance_rate: number | null
+  attendance_rate: number | null;
 }
 
-// Yoklama detayı (API yanıtına uygun)
 interface AttendanceDetail {
-  id: number
-  date: string
-  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED'
-  lesson_number: number
-  // Ek alanlar (confidence vb.) API'den gelebilir ama burada kullanmayacağız
-  // Hesaplama ve gösterim için course bilgilerini ekleyelim
-  course_id: number
-  course_name: string
-  course_code: string
+  id: number;
+  date: string;
+  status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+  lesson_number: number;
+  course_id: number;
+  course_name: string;
+  course_code: string;
 }
 
-// Yoklama API Yanıtı (Tek ders için)
 interface AttendanceResponse {
-  attendance_details: Omit<AttendanceDetail, 'course_id' | 'course_name' | 'course_code'>[]
+  attendance_details: Omit<AttendanceDetail, 'course_id' | 'course_name' | 'course_code'>[];
   course_info: {
-    id: number
-    name: string
-    code: string
-  }
-  // student_info da mevcut ama burada kullanmıyoruz
+    id: number;
+    name: string;
+    code: string;
+  };
 }
 
-// Yaklaşan ders tipi (Şimdilik kaldırıldı)
-// interface UpcomingLesson { ... }
-
+// --- Ana Component ---
 export default function StudentDashboard() {
-  // Destructure loading state from useAuth
-  const { user, token, apiUrl, loading: authLoading } = useAuth()
-  const { t } = useTranslation()
-  // Remove separate studentId state, use user?.student_id directly
+  const { user, token, apiUrl, loading: authLoading, role } = useAuth();
+  const { t } = useTranslation();
+  const router = useRouter(); // Yönlendirme için router hook'u
 
-  // Loading states
-  const [isLoadingCourses, setIsLoadingCourses] = useState(true)
-  const [isLoadingAttendance, setIsLoadingAttendance] = useState(false)
+  // --- State Tanımları ---
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [courses, setCourses] = useState<DisplayCourse[]>([]);
+  const [allAttendanceDetails, setAllAttendanceDetails] = useState<AttendanceDetail[]>([]);
+  const [isAuthorized, setIsAuthorized] = useState<boolean>(false); // Yetkilendirme durumu
 
-  // Error states
-  const [error, setError] = useState<string | null>(null)
-
-  // Data states
-  const [courses, setCourses] = useState<DisplayCourse[]>([])
-  const [allAttendanceDetails, setAllAttendanceDetails] = useState<AttendanceDetail[]>([])
-  // const [upcomingLessons, setUpcomingLessons] = useState<UpcomingLesson[]>([]); // Kaldırıldı
-
-  // Dersleri ve yoklamaları çek
+  // --- YENİ: Sayfa Yüklendikten Sonra Tek Seferlik Yenileme ---
   useEffect(() => {
-    // Wait for auth provider to finish loading AND user/token to be available
-    if (authLoading || !user?.student_id || !token) {
-      // If auth is still loading, just wait.
-      // If auth finished but user/token/student_id is missing, handle error or wait state.
-      if (!authLoading && user && !user.student_id) {
-        console.error("Auth loaded, but user has no student_id.")
-        setError(t('dashboard.error.missingStudentId'))
-        setIsLoadingCourses(false);
-        setIsLoadingAttendance(false);
-      } else if (!authLoading && (!user || !token)) {
-         // Auth finished, but user/token still missing (e.g., not logged in)
-         // This case might be handled by routing, but set loading false just in case.
-         setIsLoadingCourses(false);
-         setIsLoadingAttendance(false);
-      } else {
-         // Still waiting for authLoading to become false
-         setIsLoadingCourses(true);
-         setIsLoadingAttendance(true);
-      }
+    const refreshFlag = 'studentDashboardRefreshed'; // sessionStorage anahtarı
+    const hasRefreshed = sessionStorage.getItem(refreshFlag);
+
+    if (!hasRefreshed) {
+      // Eğer bu session'da henüz yenileme yapılmamışsa
+      console.log('StudentDashboard: Sayfa ilk kez yükleniyor, 1ms sonra yenileme planlanıyor.');
+      sessionStorage.setItem(refreshFlag, 'true'); // Yenileme yapıldığını işaretle
+      const timerId = setTimeout(() => {
+        console.log('StudentDashboard: Sayfa yenileniyor...');
+        window.location.reload();
+      }, 1); // 1 milisaniye sonra yenile
+
+      // Component unmount olursa timeout'u temizle (çok kısa süre için pek olası değil ama iyi pratik)
+      return () => clearTimeout(timerId);
+    } else {
+      // Daha önce yenileme yapılmış, tekrar yapma
+      console.log('StudentDashboard: Sayfa bu oturumda zaten yenilenmiş, tekrar yenilenmeyecek.');
+    }
+
+    // Bu effect sadece component ilk mount edildiğinde çalışsın
+  }, []);
+
+  // --- Ana useEffect (Auth Kontrolü, Yetkilendirme ve Veri Çekme) ---
+  useEffect(() => {
+    const refreshFlag = 'studentDashboardRefreshed'; // Yukarıdaki ile aynı anahtar
+
+    if (authLoading) {
+      console.log("StudentDashboard Effect: Auth yükleniyor...");
+      setIsAuthorized(false);
+      setIsLoadingData(false); // Veri yükleme henüz başlamadı
       return;
     }
 
-    // Get studentId directly from user object now that we know it exists
+    if (!user || !token) {
+      console.log("StudentDashboard Effect: Auth yüklendi, kullanıcı/token yok. Login'e yönlendiriliyor.");
+      setIsAuthorized(false);
+      sessionStorage.removeItem(refreshFlag); // Başarısızlık/yönlendirme durumunda bayrağı temizle ki tekrar login olunca yenilesin
+      router.replace('/auth/login');
+      return;
+    }
+
+    if (role !== 'STUDENT') {
+      console.log(`StudentDashboard Effect: Kullanıcı rolü "${role}" STUDENT değil. Login'e yönlendiriliyor.`);
+      setIsAuthorized(false);
+      sessionStorage.removeItem(refreshFlag); // Başarısızlık/yönlendirme durumunda bayrağı temizle
+      router.replace('/auth/login');
+      return;
+    }
+
+    if (!user.student_id) {
+        console.error("StudentDashboard Effect: Kullanıcı STUDENT ama student_id eksik!");
+        setError(t('dashboard.error.missingStudentId'));
+        setIsAuthorized(false);
+        setIsLoadingData(false);
+        sessionStorage.removeItem(refreshFlag); // Hata durumunda bayrağı temizle
+        // Opsiyonel: Burada da login'e yönlendirebilir veya sadece hata gösterebilirsiniz.
+        return;
+    }
+
+    // --- Tüm Kontroller Başarılı ---
+    console.log("StudentDashboard Effect: Auth ve Yetki kontrolleri başarılı. Veri çekme işlemi başlıyor.");
+    setIsAuthorized(true); // Yetkilendirme başarılı
     const currentStudentId = user.student_id;
 
+    // Veri çekme fonksiyonu (sadece yetkili ise çalıştırılacak)
     const fetchAllData = async () => {
-      // Start loading indicators now that we are actually fetching
-      setIsLoadingCourses(true);
-      setIsLoadingAttendance(true)
-      setError(null)
-      let fetchedCourses: ApiCourse[] = []
-      let fetchedAttendance: AttendanceDetail[] = []
+      // Sayfa yenilendiyse ve henüz yetki kontrolünden geçmediyse (nadiren olur), veri çekme
+      if (!isAuthorized) {
+          console.log("fetchAllData: Henüz yetkilendirilmedi, veri çekme atlanıyor.");
+          return;
+      }
+      setIsLoadingData(true);
+      setError(null);
+      let fetchedCourses: ApiCourse[] = [];
+      let fetchedAttendance: AttendanceDetail[] = [];
 
       try {
-        // 1. Dersleri Çek (Use currentStudentId)
+        console.log(`Öğrenci ${currentStudentId} için dersler çekiliyor`);
         const coursesResponse = await fetch(`${apiUrl}/api/students/${currentStudentId}/courses`, {
           headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-        })
+        });
         if (!coursesResponse.ok) {
-          throw new Error(t('dashboard.error.fetchCourses'))
+          throw new Error(`${t('dashboard.error.fetchCourses')} (Status: ${coursesResponse.status})`);
         }
-        fetchedCourses = await coursesResponse.json()
-        setIsLoadingCourses(false)
+        fetchedCourses = await coursesResponse.json();
+        console.log("Çekilen dersler:", fetchedCourses);
 
         if (fetchedCourses.length === 0) {
-          setIsLoadingAttendance(false)
-          setCourses([])
-          setAllAttendanceDetails([])
-          return // Ders yoksa devam etme
+          console.log("Ders bulunamadı.");
+          setCourses([]);
+          setAllAttendanceDetails([]);
+        } else {
+          console.log("Dersler için yoklamalar çekiliyor...");
+          const attendancePromises = fetchedCourses.map(async (course) => {
+             try {
+                const attendanceResponse = await fetch(`${apiUrl}/api/attendance/course/${course.id}/student/${currentStudentId}`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+                });
+                if (!attendanceResponse.ok) {
+                    console.error(`${course.id} ID'li ders için yoklama çekilemedi: ${attendanceResponse.status}`);
+                    return null;
+                }
+                const data: AttendanceResponse = await attendanceResponse.json();
+                return data.attendance_details.map(detail => ({
+                    ...detail,
+                    course_id: data.course_info.id,
+                    course_name: data.course_info.name,
+                    course_code: data.course_info.code,
+                }));
+             } catch (err) {
+                console.error(`${course.id} ID'li ders için yoklama çekilirken hata:`, err);
+                return null;
+             }
+          });
+          const attendanceResults = await Promise.all(attendancePromises);
+          fetchedAttendance = attendanceResults.flat().filter((detail): detail is AttendanceDetail => detail !== null);
+          console.log("Çekilen yoklamalar:", fetchedAttendance);
+          setAllAttendanceDetails(fetchedAttendance);
+
+          const coursesWithAttendance: DisplayCourse[] = fetchedCourses.map(course => {
+            const courseAttendance = fetchedAttendance.filter(att => att.course_id === course.id);
+            const total = courseAttendance.length;
+            const present = courseAttendance.filter(att => att.status === 'PRESENT' || att.status === 'LATE').length;
+            const rate = total > 0 ? Math.round((present / total) * 100) : null;
+            return { ...course, attendance_rate: rate };
+          });
+          setCourses(coursesWithAttendance);
+          console.log("Yoklama oranları ile dersler:", coursesWithAttendance);
         }
 
-        // 2. Her ders için yoklamayı çek (Use currentStudentId)
-        const attendancePromises = fetchedCourses.map(async (course) => {
-          try {
-            const attendanceResponse = await fetch(`${apiUrl}/api/attendance/course/${course.id}/student/${currentStudentId}`, {
-              headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
-            })
-            if (!attendanceResponse.ok) {
-              // Tek bir dersin yoklaması alınamazsa hata logla ama devam et
-              console.error(`Failed to fetch attendance for course ${course.id}: ${attendanceResponse.status}`)
-              return null // Hatalı ders için null döndür
-            }
-            const data: AttendanceResponse = await attendanceResponse.json()
-            // Gelen yanıta ders bilgilerini ekleyerek AttendanceDetail formatına getir
-            return data.attendance_details.map(detail => ({
-              ...detail,
-              course_id: data.course_info.id,
-              course_name: data.course_info.name,
-              course_code: data.course_info.code,
-            }))
-          } catch (err) {
-            console.error(`Error fetching attendance for course ${course.id}:`, err)
-            return null // Hata durumunda null döndür
-          }
-        })
-
-        const attendanceResults = await Promise.all(attendancePromises)
-        
-        // Başarılı ve null olmayan sonuçları birleştir
-        fetchedAttendance = attendanceResults.flat().filter((detail): detail is AttendanceDetail => detail !== null)
-        setAllAttendanceDetails(fetchedAttendance)
-
-        // 3. Her ders için katılım oranını hesapla ve ders listesini güncelle
-        const coursesWithAttendance: DisplayCourse[] = fetchedCourses.map(course => {
-          const courseAttendance = fetchedAttendance.filter(att => att.course_id === course.id)
-          const total = courseAttendance.length
-          const present = courseAttendance.filter(att => att.status === 'PRESENT' || att.status === 'LATE').length // LATE de katılmış sayılabilir?
-          const rate = total > 0 ? Math.round((present / total) * 100) : null
-          return { ...course, attendance_rate: rate }
-        })
-        setCourses(coursesWithAttendance)
-
       } catch (err) {
-        console.error("Failed to fetch dashboard data:", err)
-        setError(err instanceof Error ? err.message : t('dashboard.error.generic'))
-        setIsLoadingCourses(false) // Hata durumunda ikisini de false yap
+        console.error("Dashboard verisi çekilirken hata:", err);
+        setError(err instanceof Error ? err.message : t('dashboard.error.generic'));
+        setCourses([]);
+        setAllAttendanceDetails([]);
       } finally {
-        // Dersler yüklendi, yoklama yüklemesi de bitti (başarılı veya başarısız)
-        setIsLoadingAttendance(false)
+        setIsLoadingData(false);
+        console.log("Veri çekme denemesi tamamlandı.");
       }
+    };
+
+    // Yetkilendirme başarılıysa ve Auth yüklemesi bitmişse veri çekmeyi başlat
+    // (Yenileme effect'i çok hızlı çalışacağı için, bu effect yenilemeden sonra tekrar çalıştığında
+    // authLoading false ve diğer koşullar doğru olacaktır)
+    if (isAuthorized) {
+        fetchAllData();
     }
 
-    fetchAllData()
-    // Add authLoading to dependency array
-  }, [authLoading, user, token, apiUrl, t])
+    // Bağımlılıklar güncellendi: isAuthorized eklendi, router çıkarıldı (sadece yönlendirme için)
+  }, [authLoading, user, token, role, apiUrl, t, isAuthorized]);
 
-  // Hesaplanan İstatistikler (useMemo ile optimize edilebilir)
+  // --- Hesaplanan Değerler (useMemo) ---
   const stats = useMemo(() => {
-    const totalCourses = courses.length
-    const totalClasses = allAttendanceDetails.length
-    const attendedClasses = allAttendanceDetails.filter(att => att.status === 'PRESENT' || att.status === 'LATE').length
-    // Ortalama katılım: Tüm derslerdeki ortalamaların ortalaması veya genel oran?
-    // Şimdilik genel oranı hesaplayalım:
-    const averageAttendance = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0
+    const totalCourses = courses.length;
+    const totalClasses = allAttendanceDetails.length;
+    const attendedClasses = allAttendanceDetails.filter(att => att.status === 'PRESENT' || att.status === 'LATE').length;
+    const averageAttendance = totalClasses > 0 ? Math.round((attendedClasses / totalClasses) * 100) : 0;
+    return { totalCourses, averageAttendance, totalClasses, attendedClasses };
+  }, [courses, allAttendanceDetails]);
 
-    // Alternatif: Ders bazlı oranların ortalaması
-    // const validRates = courses.map(c => c.attendance_rate).filter(rate => rate !== null) as number[]
-    // const avgRateAlternative = validRates.length > 0 ? Math.round(validRates.reduce((sum, rate) => sum + rate, 0) / validRates.length) : 0
-
-    return {
-      totalCourses,
-      averageAttendance,
-      totalClasses,
-      attendedClasses,
-    }
-  }, [courses, allAttendanceDetails])
-
-  // Son yoklamalar (useMemo ile optimize edilebilir)
   const recentAttendance = useMemo(() => {
-    // Tarihe göre tersten sırala (en yeni en üstte)
     return [...allAttendanceDetails]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.lesson_number - a.lesson_number)
-      .slice(0, 5) // Son 5 kaydı al
-  }, [allAttendanceDetails])
+      .slice(0, 5);
+  }, [allAttendanceDetails]);
 
-  // Combined loading state: Auth loading OR data fetching loading
-  const isLoading = authLoading || isLoadingCourses || isLoadingAttendance;
+  // --- Render Mantığı ---
 
-  // If AuthProvider is loading, show a full page loader
-  if (authLoading) {
+  // Durum 1: Auth yükleniyor VEYA henüz yetkilendirme kontrolü geçilmedi
+  // Bu, yenileme işlemi gerçekleşirken veya yönlendirme beklenirken de gösterilir.
+  if (authLoading || !isAuthorized) {
+    // Henüz yetkilendirme tamamlanmadıysa (veya auth yükleniyorsa) yükleme göstergesi göster.
+    // Bu, içeriğin yetkisizken kısa süreliğine görünmesini engeller.
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-[calc(100vh-10rem)] items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
       </div>
     );
   }
 
+  // Durum 2: Yetkilendirme tamamlandı, dashboard içeriğini render et
+  // (Eğer yenileme effect'i tetiklendiyse, buraya gelinmeden sayfa yenilenmiş olacaktır.)
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hoş Geldiniz Başlığı Kaldırıldı */}
-      {/* 
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">{t('dashboard.greeting', { firstName: user?.first_name || t('dashboard.student') })}</h1>
-        <p className="mt-2 text-muted-foreground">
-          {t('dashboard.subtitle')}
-        </p>
-      </header>
-      */}
-
       {/* Hata Mesajı */}
-      {error && (
-        <div className="mb-8 p-4 border border-red-500 bg-red-50 rounded-md text-red-700 flex items-center">
+      {error && !isLoadingData && (
+        <div className="mb-8 p-4 border border-red-500 bg-red-50 rounded-md text-red-700 flex items-center dark:bg-red-900/20 dark:border-red-700 dark:text-red-300">
           <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
           {error}
         </div>
@@ -237,40 +248,35 @@ export default function StudentDashboard() {
 
       {/* İstatistik Kartları */}
       <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Kartlar - İçerikleri stats'dan alacak şekilde güncellendi */}
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+         {/* Kart 1: Toplam Ders */}
+        <div className="rounded-lg border bg-card p-6 shadow-sm dark:border-gray-800">
           <div className="flex items-center justify-between">
-            {isLoadingCourses ? <Loader2 className="h-6 w-6 animate-spin" /> : <span className="text-2xl font-bold">{stats.totalCourses}</span>}
-            <div className="rounded-full bg-primary/10 p-2 text-primary">
-              <Book className="h-6 w-6" />
-            </div>
+            {isLoadingData && courses.length === 0 ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <span className="text-2xl font-bold">{stats.totalCourses}</span>}
+            <div className="rounded-full bg-primary/10 p-2 text-primary dark:bg-primary/20"><Book className="h-6 w-6" /></div>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.stats.totalCourses')}</p>
         </div>
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+         {/* Kart 2: Ortalama Katılım */}
+        <div className="rounded-lg border bg-card p-6 shadow-sm dark:border-gray-800">
           <div className="flex items-center justify-between">
-            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <span className="text-2xl font-bold">%{stats.averageAttendance}</span>}
-            <div className="rounded-full bg-blue-100 p-2 text-blue-600 dark:bg-blue-900 dark:text-blue-300">
-              <Award className="h-6 w-6" />
-            </div>
+            {isLoadingData ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <span className="text-2xl font-bold">%{stats.averageAttendance}</span>}
+            <div className="rounded-full bg-blue-100 p-2 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"><Award className="h-6 w-6" /></div>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.stats.averageAttendance')}</p>
         </div>
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+         {/* Kart 3: Toplam Ders Saati */}
+        <div className="rounded-lg border bg-card p-6 shadow-sm dark:border-gray-800">
           <div className="flex items-center justify-between">
-            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <span className="text-2xl font-bold">{stats.totalClasses}</span>}
-            <div className="rounded-full bg-green-100 p-2 text-green-600 dark:bg-green-900 dark:text-green-300">
-              <Calendar className="h-6 w-6" />
-            </div>
+            {isLoadingData ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <span className="text-2xl font-bold">{stats.totalClasses}</span>}
+            <div className="rounded-full bg-green-100 p-2 text-green-600 dark:bg-green-900/30 dark:text-green-400"><Calendar className="h-6 w-6" /></div>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.stats.totalClasses')}</p>
         </div>
-        <div className="rounded-lg border bg-card p-6 shadow-sm">
+         {/* Kart 4: Katılınan Ders Saati */}
+        <div className="rounded-lg border bg-card p-6 shadow-sm dark:border-gray-800">
           <div className="flex items-center justify-between">
-            {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : <span className="text-2xl font-bold">{stats.attendedClasses}</span>}
-            <div className="rounded-full bg-yellow-100 p-2 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-300">
-              <Clock className="h-6 w-6" />
-            </div>
+            {isLoadingData ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : <span className="text-2xl font-bold">{stats.attendedClasses}</span>}
+            <div className="rounded-full bg-yellow-100 p-2 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400"><Clock className="h-6 w-6" /></div>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.stats.attendedClasses')}</p>
         </div>
@@ -278,183 +284,122 @@ export default function StudentDashboard() {
 
       {/* Derslerim */}
       <section className="mb-8">
-        <h2 className="mb-4 text-xl font-bold">{t('dashboard.courses.title')}</h2>
-
-        {isLoadingCourses ? (
+        <h2 className="mb-4 text-xl font-semibold">{t('dashboard.courses.title')}</h2>
+        {/* Veri yükleniyorsa İskelet Göster */}
+        {isLoadingData ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3].map((item) => (
-              <div key={item} className="rounded-lg border bg-card p-6 shadow-sm animate-pulse">
-                <div className="h-4 w-1/4 rounded bg-muted mb-3"></div>
-                <div className="h-6 w-3/4 rounded bg-muted mb-4"></div>
-                <div className="h-4 w-1/2 rounded bg-muted mb-5"></div>
-                <div className="h-3 w-full rounded bg-muted mb-2"></div>
-                <div className="h-2 w-full rounded bg-muted mb-6"></div>
-                <div className="h-10 w-full rounded bg-muted"></div>
+              <div key={item} className="rounded-lg border bg-card p-6 shadow-sm animate-pulse dark:border-gray-800">
+                <div className="h-4 w-1/4 rounded bg-muted mb-3 dark:bg-gray-700"></div>
+                <div className="h-6 w-3/4 rounded bg-muted mb-4 dark:bg-gray-700"></div>
+                <div className="h-4 w-1/2 rounded bg-muted mb-5 dark:bg-gray-700"></div>
+                <div className="h-3 w-full rounded bg-muted mb-2 dark:bg-gray-700"></div>
+                <div className="h-2 w-full rounded bg-muted mb-6 dark:bg-gray-700"></div>
+                <div className="h-10 w-full rounded bg-muted dark:bg-gray-700"></div>
               </div>
             ))}
           </div>
-        ) : error ? (
-          <div className="rounded-lg border border-dashed border-red-400 bg-red-50 p-8 text-center text-red-700">
-            <p>{t('dashboard.courses.error')}</p>
-          </div>
-        ) : courses.length === 0 ? (
-          <div className="rounded-lg border border-dashed bg-muted/50 p-8 text-center dark:border-gray-800">
+        // Yükleme bitti, hata yok AMA kurs da yoksa
+        ) : !error && courses.length === 0 ? (
+          <div className="rounded-lg border border-dashed bg-muted/50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
             <h3 className="mb-2 text-lg font-medium">{t('dashboard.courses.noCoursesTitle')}</h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              {t('dashboard.courses.noCoursesSubtitle')}
-            </p>
-            {/* Belki ders ekleme sayfasına link? */}
+            <p className="mb-4 text-sm text-muted-foreground">{t('dashboard.courses.noCoursesSubtitle')}</p>
           </div>
-        ) : (
+        // Yükleme bitti ve kurslar varsa
+        ) : !error && courses.length > 0 ? (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {courses.map((course) => (
-              <div
-                key={course.id}
-                className="flex flex-col rounded-lg border bg-card p-6 shadow-sm transition-shadow hover:shadow-md"
-              >
-                <div className="mb-2 text-sm font-medium text-muted-foreground">{course.code}</div>
-                <h3 className="mb-3 text-lg font-bold">{course.name}</h3>
-                <div className="mb-3 text-sm text-muted-foreground">{course.semester}</div>
-
-                <div className="mt-2 mb-4">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span className="text-muted-foreground">{t('dashboard.courses.attendanceRate')}:</span>
-                    {course.attendance_rate !== null ? (
-                      <span className="font-medium">%{course.attendance_rate}</span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground italic">{t('dashboard.courses.rateNotAvailable')}</span>
-                    )}
-                  </div>
-                  {course.attendance_rate !== null ? (
-                    <div className="h-2 w-full rounded-full bg-muted">
-                      <div
-                        className={cn(
-                          "h-2 rounded-full",
-                          course.attendance_rate >= 90
-                            ? "bg-green-500"
-                            : course.attendance_rate >= 75
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                        )}
-                        style={{ width: `${course.attendance_rate}%` }}
-                      ></div>
-                    </div>
-                  ) : (
-                    <div className="h-2 w-full rounded-full bg-muted"></div> // Oran yoksa boş bar
-                  )}
-                </div>
-
-                <div className="mt-auto">
-                  {/* Link /student/courses/{id} olmalı */}
-                  <Link
-                    href={`/dashboard/student/attendance?courseId=${course.id}`} // Devamsızlık sayfasına courseId ile git?
-                    className="flex w-full items-center justify-center rounded-md border border-primary bg-primary/10 px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary hover:text-primary-foreground"
-                  >
-                    {t('dashboard.courses.viewDetails')}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </div>
+              // --- Kurs Kartı JSX ---
+              <div key={course.id} className="flex flex-col rounded-lg border bg-card p-6 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:hover:border-gray-700">
+                 <div className="mb-1 text-sm font-medium text-muted-foreground">{course.code}</div>
+                 <h3 className="mb-2 text-lg font-semibold">{course.name}</h3>
+                 <div className="mb-4 text-sm text-muted-foreground">{course.semester}</div>
+                 <div className="mt-auto space-y-3">
+                   <div> {/* Yoklama Oranı */}
+                      <div className="mb-1 flex justify-between text-sm">
+                        <span className="text-muted-foreground">{t('dashboard.courses.attendanceRate')}:</span>
+                        {course.attendance_rate !== null ? <span className="font-medium text-foreground">%{course.attendance_rate}</span> : <span className="text-xs text-muted-foreground italic">{t('dashboard.courses.rateNotAvailable')}</span>}
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted dark:bg-gray-700">
+                        {course.attendance_rate !== null && <div className={cn("h-2 rounded-full", course.attendance_rate >= 90 ? "bg-green-500" : course.attendance_rate >= 75 ? "bg-yellow-500" : "bg-red-500")} style={{ width: `${course.attendance_rate}%` }}></div>}
+                      </div>
+                   </div>
+                   <div> {/* Detayları Gör Butonu */}
+                      <Link href={`/dashboard/student/attendance?courseId=${course.id}`} className={cn("flex w-full items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors", "border-primary bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground", "dark:bg-primary/20 dark:hover:bg-primary dark:hover:text-primary-foreground")}>
+                        {t('dashboard.courses.viewDetails')}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                   </div>
+                 </div>
               </div>
+              // --- Kurs Kartı JSX Sonu ---
             ))}
           </div>
-        )}
+        ) : null /* Hata durumu yukarıda zaten ele alınıyor */}
       </section>
 
-      {/* Yaklaşan Dersler (Şimdilik kaldırıldı/yorumlandı) */}
-      {/* <section className="mb-8"> ... </section> */}
+      {/* Yaklaşan Dersler (Bu kısım placeholder, istersen doldurabilirsin) */}
       <section className="mb-8">
-        <h2 className="mb-4 text-xl font-bold">{t('dashboard.upcoming.title')}</h2>
-        <div className="rounded-lg border border-dashed bg-muted/50 p-8 text-center dark:border-gray-800">
-          <p className="text-sm text-muted-foreground">
-            {t('dashboard.upcoming.notAvailable')}
-          </p>
+        <h2 className="mb-4 text-xl font-semibold">{t('dashboard.upcoming.title')}</h2>
+        <div className="rounded-lg border border-dashed bg-muted/50 p-8 text-center dark:border-gray-800 dark:bg-gray-900">
+          <p className="text-sm text-muted-foreground">{t('dashboard.upcoming.notAvailable')}</p>
         </div>
       </section>
 
       {/* Son Yoklamalar */}
       <section>
-        <h2 className="mb-4 text-xl font-bold">{t('dashboard.recentAttendance.title')}</h2>
-        <div className="rounded-lg border shadow-sm">
+        <h2 className="mb-4 text-xl font-semibold">{t('dashboard.recentAttendance.title')}</h2>
+        <div className="rounded-lg border shadow-sm overflow-hidden dark:border-gray-800">
           <div className="overflow-x-auto">
-            <table className="w-full table-auto">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="whitespace-nowrap px-6 py-4 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.course')}</th>
-                  <th className="whitespace-nowrap px-6 py-4 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.date')}</th>
-                  <th className="whitespace-nowrap px-6 py-4 text-left text-sm font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.status')}</th>
+            <table className="w-full table-auto text-sm">
+              <thead className="bg-muted/50 dark:bg-gray-800/50">
+                <tr>
+                  <th className="whitespace-nowrap px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.course')}</th>
+                  <th className="whitespace-nowrap px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.date')}</th>
+                  <th className="whitespace-nowrap px-6 py-3 text-left font-medium text-muted-foreground uppercase tracking-wider">{t('dashboard.recentAttendance.status')}</th>
                 </tr>
               </thead>
-              <tbody>
-                {isLoading ? (
+              <tbody className="divide-y divide-border dark:divide-gray-800">
+                {/* Veri yükleniyorsa İskelet Göster */}
+                {isLoadingData ? (
                   [1, 2, 3].map((item) => (
-                    <tr key={item} className="border-b animate-pulse">
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <div className="h-4 w-40 rounded bg-muted"></div>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <div className="h-4 w-24 rounded bg-muted"></div>
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4">
-                        <div className="h-4 w-20 rounded bg-muted"></div>
-                      </td>
+                    <tr key={item} className="animate-pulse">
+                      <td className="whitespace-nowrap px-6 py-4"><div className="h-4 w-40 rounded bg-muted dark:bg-gray-700"></div></td>
+                      <td className="whitespace-nowrap px-6 py-4"><div className="h-4 w-24 rounded bg-muted dark:bg-gray-700"></div></td>
+                      <td className="whitespace-nowrap px-6 py-4"><div className="h-5 w-20 rounded-full bg-muted dark:bg-gray-700"></div></td>
                     </tr>
                   ))
-                ) : error ? (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-8 text-center text-red-600">
-                      {t('dashboard.recentAttendance.error')}
-                    </td>
-                  </tr>
-                ) : recentAttendance.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-8 text-center text-muted-foreground">
-                      {t('dashboard.recentAttendance.noData')}
-                    </td>
-                  </tr>
-                ) : (
+                // Yükleme bitti, hata yok AMA veri yoksa
+                ) : !error && recentAttendance.length === 0 ? (
+                   <tr>
+                     <td colSpan={3} className="px-6 py-12 text-center text-muted-foreground">
+                       {courses.length === 0 ? t('dashboard.recentAttendance.noCourses') : t('dashboard.recentAttendance.noData')}
+                     </td>
+                   </tr>
+                // Yükleme bitti ve veri varsa
+                ) : !error && recentAttendance.length > 0 ? (
                   recentAttendance.map((attendance) => (
-                    <tr key={attendance.id} className="border-b transition-colors hover:bg-muted/50">
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-foreground">{attendance.course_code} - {attendance.course_name}</td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">{formatDate(new Date(attendance.date))}</td>
+                    // --- Yoklama Satırı JSX ---
+                    <tr key={attendance.id} className="transition-colors hover:bg-muted/50 dark:hover:bg-gray-800/50">
+                      <td className="whitespace-nowrap px-6 py-4 text-foreground">{attendance.course_code} - {attendance.course_name}</td>
+                      <td className="whitespace-nowrap px-6 py-4 text-muted-foreground">{formatDate(new Date(attendance.date))}</td>
                       <td className="whitespace-nowrap px-6 py-4">
-                        <span className={cn(
-                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                          getAttendanceStatusColor(attendance.status) // utils fonksiyonu kullanıldı
-                        )}>
-                          {attendance.status === 'PRESENT' && (
-                            <>
-                              <CheckCircle className="mr-1 h-3 w-3" />
-                              {t('attendance.status.present')}
-                            </>
-                          )}
-                          {attendance.status === 'ABSENT' && (
-                            <>
-                              <XCircle className="mr-1 h-3 w-3" />
-                              {t('attendance.status.absent')}
-                            </>
-                          )}
-                          {attendance.status === 'LATE' && (
-                            <>
-                              <Clock className="mr-1 h-3 w-3" />
-                              {t('attendance.status.late')}
-                            </>
-                          )}
-                          {attendance.status === 'EXCUSED' && (
-                            <>
-                              {/* İkon eklenebilir */}
-                              {t('attendance.status.excused')}
-                            </>
-                          )}
+                        <span className={cn("inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold", getAttendanceStatusColor(attendance.status))}>
+                          {attendance.status === 'PRESENT' && ( <><CheckCircle className="mr-1.5 h-3.5 w-3.5" /> {t('attendance.status.present')} </> )}
+                          {attendance.status === 'ABSENT' && ( <><XCircle className="mr-1.5 h-3.5 w-3.5" /> {t('attendance.status.absent')} </> )}
+                          {attendance.status === 'LATE' && ( <><Clock className="mr-1.5 h-3.5 w-3.5" /> {t('attendance.status.late')} </> )}
+                          {attendance.status === 'EXCUSED' && ( <>{/* İkon eklenebilir */} {t('attendance.status.excused')} </> )}
                         </span>
                       </td>
                     </tr>
+                    // --- Yoklama Satırı JSX Sonu ---
                   ))
-                )}
+                ) : null /* Hata durumu yukarıda zaten ele alınıyor */}
               </tbody>
             </table>
           </div>
         </div>
       </section>
     </div>
-  )
+  );
 }

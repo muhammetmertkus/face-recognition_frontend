@@ -184,7 +184,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setToken(access_token)
       setUser(userData)
       setRole(userData.role)
-      
+
+      // Log the received user data, especially the role
+      console.log("Login successful, user data:", userData);
+      console.log("User role for redirection:", userData.role);
+
       if (userData.role === 'TEACHER' && userData.teacher_id) {
          setTeacherId(userData.teacher_id);
       } else {
@@ -197,10 +201,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         router.push('/dashboard/teacher');
       } else if (userData.role === 'STUDENT') {
         router.push('/dashboard/student');
-        // Force refresh after a short delay to ensure data loads
-        setTimeout(() => {
-          window.location.reload();
-        }, 150); // 150ms delay
+        // Removed the forced refresh as it interferes with navigation
+        // Data loading is now handled by waiting for authLoading in dashboard/courses pages
       }
     } catch (err) {
       console.error('Login error:', err)

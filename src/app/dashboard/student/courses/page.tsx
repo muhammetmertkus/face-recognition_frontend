@@ -81,7 +81,6 @@ export default function StudentCoursesPage() {
                     const errorMessage = err.message || t('courses.error.fetchUser', 'Kullanıcı bilgileri alınamadı.');
                     setErrorEnrolled(errorMessage);
                     setErrorAll(errorMessage);
-                    setIsLoadingEnrolled(false);
                     // No need to set loading false here, main fetch effects will handle it
                 }
             };
@@ -122,7 +121,7 @@ export default function StudentCoursesPage() {
         } finally {
             setIsLoadingEnrolled(false);
         }
-    }, [studentId, token, t, apiUrl]);
+    }, [studentId, token, t, apiUrl, authLoading]); // Added authLoading to useCallback dependency
 
     // Tüm dersleri çekme fonksiyonu
     const fetchAllCourses = useCallback(async () => {
@@ -152,7 +151,7 @@ export default function StudentCoursesPage() {
         } finally {
             setIsLoadingAll(false);
         }
-    }, [token, t, apiUrl]);
+    }, [token, t, apiUrl, authLoading]); // Added authLoading to useCallback dependency
 
     // studentId veya token veya authLoading değiştiğinde ilgili verileri çek
     useEffect(() => {
