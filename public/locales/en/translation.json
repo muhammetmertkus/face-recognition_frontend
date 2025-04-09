@@ -27,6 +27,7 @@
     "coursesList": "List Courses",
     "attendance": "Attendance",
     "attendanceNew": "Start New Session",
+    "attendancreport": "Attendance Report",
     "attendanceHistory": "Attendance History",
     "attendanceReports": "Absenteeism Report",
     "students": "Students",
@@ -225,5 +226,34 @@
     "disgust": "Disgusted",
     "unknown": "Unknown"
   },
-  "student": "Student"
-} 
+  "student": "Student",
+  "attendanceReports": {
+    "title": "Attendance Reports",
+    "selectCourseLabel": "Select Course",
+    "selectCoursePlaceholder": "-- Select Course --",
+    "searchLabel": "Search Student:",
+    "searchPlaceholder": "Student name...",
+    "limitLabel": "Absence Limit (Minimum):",
+    "tableTitle": "Absent Students ({{count}})",
+    "tableHeaderSelect": "Select",
+    "tableHeaderName": "Student Name",
+    "tableHeaderAbsences": "Total Absences",
+    "noFilteredData": "No absent students found matching the filter criteria.",
+    "noCourseData": "No absence records found for this course.",
+    "sendEmailButton": "Send Email to Selected ({{count}})",
+    "exportButton": "Export Report to Excel",
+    "selectCoursePrompt": "Please select a course to view the report.",
+    "alerts": {
+      "exportEmpty": "No data found to export.",
+      "selectStudentsEmail": "Please select students to send emails to.",
+      "emailSentSimulation": "Email sending simulated for:\n{studentNames}",
+      "emailSentSuccess": "Email sending process successfully initiated for {{count}} selected students.",
+      "emailConfigError": "Email settings are not configured. Please contact the administrator or check the information in the code.",
+      "sendingEmails": "Sending emails...",
+      "emailSentSuccessAll": "Emails successfully sent to {{count}} students.",
+      "emailSentPartial": "Emails sent to {{success}} out of {{total}} students, {{errorCount}} attempts failed.",
+      "emailSentNone": "Could not send email to any students ({{count}} failed attempts).",
+      "emailSentErrorGeneral": "A general error occurred during email sending."
+    }
+  }
+}

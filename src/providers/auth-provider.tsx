@@ -47,7 +47,7 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => {},
   logout: () => {},
   isAuthenticated: false,
-  apiUrl: 'https://web-production-0ea9f.up.railway.app', // Örnek API URL'si ile güncellendi
+  apiUrl: 'http://127.0.0.1:5000', // Örnek API URL'si ile güncellendi
   setApiUrl: () => {},
   refreshUser: async () => {}, // refreshUser için varsayılan eklendi
 })
@@ -65,9 +65,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // API URL'si için varsayılan değer ayarlandı
   const [apiUrl, setApiUrlState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('apiUrl') || 'https://web-production-0ea9f.up.railway.app'
+      return localStorage.getItem('apiUrl') || 'http://127.0.0.1:5000'
     }
-    return 'https://web-production-0ea9f.up.railway.app'
+    return 'http://127.0.0.1:5000'
   })
   const router = useRouter()
 

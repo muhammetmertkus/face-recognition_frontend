@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regarding Your Attendance Status</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            color: #dc3545; /* Red tone */
+            margin: 0;
+        }
+        .content p {
+            margin-bottom: 15px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #007bff; /* Blue tone */
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 0.9em;
+            color: #777;
+        }
+        .emoji {
+            font-size: 1.2em;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Uh Oh! 😥 You've Exceeded the Absence Limit...</h1>
+        </div>
+        <div class="content">
+            <p>Dear <span class="highlight">{{studentName}}</span>,</p>
+            <p>
+                We have some news... We reviewed your attendance for the <span class="highlight">{{courseName}} ({{courseCode}})</span> course, and unfortunately, we noticed you've exceeded the absence limit. 😕
+            </p>
+            <p>
+                According to regulations, this means you have failed the course due to absences and will not be able to take the final exam. We know this isn't great news. 😔
+            </p>
+            <p>
+                But don't worry! 💪 We believe you can retake the course next semester and nail the attendance this time. Maybe the classes are more fun than you think, who knows? 😉
+            </p>
+            <p>
+                Remember, attending classes is always important. You won't miss out on topics, and you get to spend more time with us! 🎉
+            </p>
+            <p>
+                See you in class next semester! Take care! 👋
+            </p>
+        </div>
+        <div class="footer">
+            <p>Face Recognition Attendance System</p>
+            <p><small>This email was sent automatically.</small></p>
+        </div>
+    </div>
+</body>
+</html>

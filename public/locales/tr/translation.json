@@ -27,6 +27,7 @@
     "coursesList": "Dersleri Listele",
     "attendance": "Yoklama",
     "attendanceNew": "Yeni Yoklama Başlat",
+    "attendancreport": "Devamsızlık Raporu",
     "attendanceHistory": "Geçmiş Yoklamalar",
     "attendanceReports": "Devamsızlık Raporu",
     "students": "Öğrenciler",
@@ -225,5 +226,34 @@
     "disgust": "İğrenmiş",
     "unknown": "Bilinmeyen"
   },
-  "student": "Öğrenci"
-} 
+  "student": "Öğrenci",
+  "attendanceReports": {
+    "title": "Yoklama Raporları",
+    "selectCourseLabel": "Ders Seçin",
+    "selectCoursePlaceholder": "-- Ders Seçin --",
+    "searchLabel": "Öğrenci Ara:",
+    "searchPlaceholder": "Öğrenci adı...",
+    "limitLabel": "Devamsızlık Sınırı (Minimum):",
+    "tableTitle": "Devamsızlık Yapan Öğrenciler ({{count}})",
+    "tableHeaderSelect": "Seç",
+    "tableHeaderName": "Öğrenci Adı",
+    "tableHeaderAbsences": "Toplam Devamsızlık",
+    "noFilteredData": "Filtre kriterlerine uyan devamsız öğrenci bulunamadı.",
+    "noCourseData": "Bu ders için devamsızlık kaydı bulunamadı.",
+    "sendEmailButton": "Seçili {{count}} Öğrenciye E-posta Gönder",
+    "exportButton": "Raporu Excel Olarak Dışa Aktar",
+    "selectCoursePrompt": "Lütfen raporu görüntülemek için bir ders seçin.",
+    "alerts": {
+      "exportEmpty": "Dışa aktarılacak veri bulunamadı.",
+      "selectStudentsEmail": "Lütfen e-posta gönderilecek öğrencileri seçin.",
+      "emailSentSimulation": "Şu öğrenciler için e-posta gönderimi simüle edildi:\n{studentNames}",
+      "emailSentSuccess": "Seçili {{count}} öğrenci için e-posta gönderme işlemi başarıyla başlatıldı.",
+      "emailConfigError": "E-posta ayarları yapılandırılmamış. Lütfen yönetici ile iletişime geçin veya kod içindeki bilgileri kontrol edin.",
+      "sendingEmails": "E-postalar gönderiliyor...",
+      "emailSentSuccessAll": "{{count}} öğrenciye e-posta başarıyla gönderildi.",
+      "emailSentPartial": "Toplam {{total}} öğrenciden {{success}} tanesine e-posta gönderildi, {{errorCount}} gönderim başarısız.",
+      "emailSentNone": "Hiçbir öğrenciye e-posta gönderilemedi ({{count}} başarısız deneme).",
+      "emailSentErrorGeneral": "E-posta gönderimi sırasında genel bir hata oluştu."
+    }
+  }
+}

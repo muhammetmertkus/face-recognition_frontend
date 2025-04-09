@@ -32,7 +32,7 @@ export default function StudentCoursesPage() {
     const [enrollError, setEnrollError] = useState<string | null>(null);
     const [enrollSuccess, setEnrollSuccess] = useState<string | null>(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://web-production-0ea9f.up.railway.app/';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000/';
 
     // Tüm fetch istekleri için ortak headers ve options
     const commonHeaders = {
