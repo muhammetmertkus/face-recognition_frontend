@@ -50,55 +50,25 @@ export default function StudentDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [courses, setCourses] = useState<DisplayCourse[]>([]);
   const [allAttendanceDetails, setAllAttendanceDetails] = useState<AttendanceDetail[]>([]);
-  const [isAuthorized, setIsAuthorized] = useState<boolean>(false); // Yetkilendirme durumu
 
-  // --- YENİ: Sayfa Yüklendikten Sonra Tek Seferlik Yenileme ---
+  // --- Ana useEffect (Auth Kontrolü ve Veri Çekme) ---
   useEffect(() => {
-    const refreshFlag = 'studentDashboardRefreshed'; // sessionStorage anahtarı
-    const hasRefreshed = sessionStorage.getItem(refreshFlag);
-
-    if (!hasRefreshed) {
-      // Eğer bu session'da henüz yenileme yapılmamışsa
-      console.log('StudentDashboard: Sayfa ilk kez yükleniyor, 1ms sonra yenileme planlanıyor.');
-      sessionStorage.setItem(refreshFlag, 'true'); // Yenileme yapıldığını işaretle
-      const timerId = setTimeout(() => {
-        console.log('StudentDashboard: Sayfa yenileniyor...');
-        window.location.reload();
-      }, 30); // 1 milisaniye sonra yenile
-
-      // Component unmount olursa timeout'u temizle (çok kısa süre için pek olası değil ama iyi pratik)
-      return () => clearTimeout(timerId);
-    } else {
-      // Daha önce yenileme yapılmış, tekrar yapma
-      console.log('StudentDashboard: Sayfa bu oturumda zaten yenilenmiş, tekrar yenilenmeyecek.');
-    }
-
-    // Bu effect sadece component ilk mount edildiğinde çalışsın
-  }, []);
-
-  // --- Ana useEffect (Auth Kontrolü, Yetkilendirme ve Veri Çekme) ---
-  useEffect(() => {
-    const refreshFlag = 'studentDashboardRefreshed'; // Yukarıdaki ile aynı anahtar
-
+    // 1. Auth Yükleniyor mu Kontrolü
     if (authLoading) {
       console.log("StudentDashboard Effect: Auth yükleniyor...");
-      setIsAuthorized(false);
-      setIsLoadingData(false); // Veri yükleme henüz başlamadı
-      return;
+      setIsLoadingData(true); // Auth yüklenirken veri yükleme de gösterilebilir
+      return; // Auth yüklenene kadar bekle
     }
 
+    // 2. Auth Yüklendi, Yetkilendirme Kontrolleri
     if (!user || !token) {
       console.log("StudentDashboard Effect: Auth yüklendi, kullanıcı/token yok. Login'e yönlendiriliyor.");
-      setIsAuthorized(false);
-      sessionStorage.removeItem(refreshFlag); // Başarısızlık/yönlendirme durumunda bayrağı temizle ki tekrar login olunca yenilesin
       router.replace('/auth/login');
       return;
     }
 
     if (role !== 'STUDENT') {
       console.log(`StudentDashboard Effect: Kullanıcı rolü "${role}" STUDENT değil. Login'e yönlendiriliyor.`);
-      setIsAuthorized(false);
-      sessionStorage.removeItem(refreshFlag); // Başarısızlık/yönlendirme durumunda bayrağı temizle
       router.replace('/auth/login');
       return;
     }
@@ -106,25 +76,15 @@ export default function StudentDashboard() {
     if (!user.student_id) {
         console.error("StudentDashboard Effect: Kullanıcı STUDENT ama student_id eksik!");
         setError(t('dashboard.error.missingStudentId'));
-        setIsAuthorized(false);
-        setIsLoadingData(false);
-        sessionStorage.removeItem(refreshFlag); // Hata durumunda bayrağı temizle
-        // Opsiyonel: Burada da login'e yönlendirebilir veya sadece hata gösterebilirsiniz.
+        setIsLoadingData(false); // Hata durumunda veri yüklemeyi durdur
         return;
     }
 
-    // --- Tüm Kontroller Başarılı ---
+    // --- Tüm Kontroller Başarılı, Veri Çek --- 
     console.log("StudentDashboard Effect: Auth ve Yetki kontrolleri başarılı. Veri çekme işlemi başlıyor.");
-    setIsAuthorized(true); // Yetkilendirme başarılı
     const currentStudentId = user.student_id;
 
-    // Veri çekme fonksiyonu (sadece yetkili ise çalıştırılacak)
     const fetchAllData = async () => {
-      // Sayfa yenilendiyse ve henüz yetki kontrolünden geçmediyse (nadiren olur), veri çekme
-      if (!isAuthorized) {
-          console.log("fetchAllData: Henüz yetkilendirilmedi, veri çekme atlanıyor.");
-          return;
-      }
       setIsLoadingData(true);
       setError(null);
       let fetchedCourses: ApiCourse[] = [];
@@ -195,15 +155,10 @@ export default function StudentDashboard() {
       }
     };
 
-    // Yetkilendirme başarılıysa ve Auth yüklemesi bitmişse veri çekmeyi başlat
-    // (Yenileme effect'i çok hızlı çalışacağı için, bu effect yenilemeden sonra tekrar çalıştığında
-    // authLoading false ve diğer koşullar doğru olacaktır)
-    if (isAuthorized) {
-        fetchAllData();
-    }
+    fetchAllData(); // Yetki kontrolleri geçildiyse doğrudan çağır
 
-    // Bağımlılıklar güncellendi: isAuthorized eklendi, router çıkarıldı (sadece yönlendirme için)
-  }, [authLoading, user, token, role, apiUrl, t, isAuthorized]);
+  // Bağımlılıklar güncellendi: Artık auth yüklemesi bittiğinde ve user/token/role değiştiğinde çalışacak.
+  }, [authLoading, user, token, role, apiUrl, t, router]); 
 
   // --- Hesaplanan Değerler (useMemo) ---
   const stats = useMemo(() => {
@@ -222,11 +177,9 @@ export default function StudentDashboard() {
 
   // --- Render Mantığı ---
 
-  // Durum 1: Auth yükleniyor VEYA henüz yetkilendirme kontrolü geçilmedi
-  // Bu, yenileme işlemi gerçekleşirken veya yönlendirme beklenirken de gösterilir.
-  if (authLoading || !isAuthorized) {
-    // Henüz yetkilendirme tamamlanmadıysa (veya auth yükleniyorsa) yükleme göstergesi göster.
-    // Bu, içeriğin yetkisizken kısa süreliğine görünmesini engeller.
+  // Durum 1: Auth hala yükleniyor MU veya veri yükleniyor MU?
+  // Auth yüklenirken de, veri çekilirken de yükleme göster.
+  if (authLoading || isLoadingData) { 
     return (
       <div className="flex h-[calc(100vh-10rem)] items-center justify-center bg-background">
         <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -234,12 +187,31 @@ export default function StudentDashboard() {
     );
   }
 
-  // Durum 2: Yetkilendirme tamamlandı, dashboard içeriğini render et
-  // (Eğer yenileme effect'i tetiklendiyse, buraya gelinmeden sayfa yenilenmiş olacaktır.)
+  // Durum 2: Auth yüklendi, veri yükleme bitti AMA user/token/role yok (redirect gerçekleşmiş olmalı ama garanti)
+  // VEYA student_id yok (hata state'i set edilmiş olmalı)
+  if (!user || !token || role !== 'STUDENT' || !user.student_id) {
+     // Bu duruma normalde yukarıdaki useEffect içindeki redirect'ler nedeniyle gelinmemeli.
+     // Eğer gelinirse, bir hata mesajı veya boş ekran gösterilebilir, ya da tekrar login'e yönlendirilebilir.
+     // Şimdilik sadece hatayı gösterelim (varsa)
+     return (
+       <div className="container mx-auto px-4 py-8">
+         {error && (
+           <div className="mb-8 p-4 border border-red-500 bg-red-50 rounded-md text-red-700 flex items-center dark:bg-red-900/20 dark:border-red-700 dark:text-red-300">
+             <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
+             {error || t('dashboard.errors.accessDeniedMsg')} {/* Genel erişim hatası göster */} 
+           </div>
+         )}
+         {/* Opsiyonel: Login'e dön butonu */} 
+         <Link href="/auth/login" className="text-primary hover:underline">{t('dashboard.buttons.login')}</Link>
+       </div>
+     );
+  }
+
+  // Durum 3: Yetkilendirme tamamlandı, veri yüklendi (veya yüklenirken hata oluştu)
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Hata Mesajı */}
-      {error && !isLoadingData && (
+      {/* Hata Mesajı (Veri çekme hatası) */} 
+      {error && (
         <div className="mb-8 p-4 border border-red-500 bg-red-50 rounded-md text-red-700 flex items-center dark:bg-red-900/20 dark:border-red-700 dark:text-red-300">
           <AlertTriangle className="h-5 w-5 mr-3 flex-shrink-0" />
           {error}

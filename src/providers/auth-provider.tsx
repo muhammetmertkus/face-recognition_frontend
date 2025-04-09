@@ -33,7 +33,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   apiUrl: string
   setApiUrl: (url: string) => void
-  refreshUser: () => Promise<void>; // Kullanıcı bilgisini yenileme fonksiyonu eklendi
+  refreshUser: () => Promise<User | null>; // Dönüş tipi Promise<void> -> Promise<User | null> olarak güncellendi
 }
 
 // Varsayılan değerler ile bağlam oluşturma - token eklendi
@@ -49,7 +49,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   apiUrl: 'https://web-production-0ea9f.up.railway.app', // Örnek API URL'si ile güncellendi
   setApiUrl: () => {},
-  refreshUser: async () => {}, // refreshUser için varsayılan eklendi
+  refreshUser: async () => null, // refreshUser için varsayılan eklendi
 })
 
 // Auth bağlamını kullanmak için özel hook
@@ -80,17 +80,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   // Kullanıcı bilgisini API'den alıp state'i güncelleyen fonksiyon
-  const fetchAndSetUser = async () => {
+  const fetchAndSetUser = async (): Promise<User | null> => {
     const storedToken = localStorage.getItem('access_token');
     if (!storedToken) {
        setUser(null);
        setRole(null);
        setTeacherId(null);
        setToken(null);
-       return;
+       return null;
     }
 
-    setToken(storedToken);
+    if (!token) setToken(storedToken); 
+
     try {
       const response = await fetch(`${apiUrl}/api/auth/me`, {
         headers: {
@@ -103,25 +104,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (!response.ok) {
-         throw new Error('Token validation failed during refresh');
+         console.error('Token validation failed during fetchAndSetUser', response.status);
+         localStorage.removeItem('access_token');
+         setToken(null);
+         setUser(null);
+         setRole(null);
+         setTeacherId(null);
+         return null;
       }
 
       const userData: User & { teacher_id?: number; student_id?: number } = await response.json(); 
 
       if (userData) {
+        console.log("fetchAndSetUser successful, user data:", userData);
         setUser(userData);
         setRole(userData.role);
-        setTeacherId(userData.role === 'TEACHER' ? userData.teacher_id || null : null);
+        setTeacherId(userData.role === 'TEACHER' ? userData.teacher_id || null : null); 
+        return userData;
       } else {
-         throw new Error('No user data found during refresh');
+         throw new Error('No user data found from /api/auth/me');
       }
     } catch (error) {
-       console.error("User refresh failed:", error);
+       console.error("fetchAndSetUser failed:", error);
        localStorage.removeItem('access_token');
        setToken(null);
        setUser(null);
        setRole(null);
        setTeacherId(null);
+       return null;
     }
   };
 
@@ -149,12 +159,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // apiUrl bağımlılıklardan çıkarıldı, sadece başlangıçta çalışsın
 
-  // Giriş işlemi - token state'i de ayarlanıyor
+  // Giriş işlemi - Giriş sonrası fetchAndSetUser çağrısı eklendi
   const login = async (email: string, password: string) => {
     setLoading(true)
     setError(null)
-    
+    setUser(null);
+    setRole(null);
+    setTeacherId(null);
+    setToken(null);
+    localStorage.removeItem('access_token');
+
     try {
+      console.log(`Login attempt for ${email} using API: ${apiUrl}/api/auth/login`);
       const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -163,79 +179,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         body: JSON.stringify({ email, password }),
         mode: 'cors',
-        credentials: 'include',
       })
 
       if (!response.ok) {
-        let errorMessage = `Giriş başarısız: ${response.statusText}`;
+        let errorMessage = `Giriş başarısız: ${response.status}`;
         try {
            const errorData = await response.json();
+           console.error('Login API error response:', errorData);
            errorMessage = errorData.message || errorData.detail || errorMessage;
         } catch (e) {
+           console.error('Could not parse error response from login API');
         }
         throw new Error(errorMessage);
       }
 
-      const data: { access_token: string, user: User & { teacher_id?: number } } = await response.json() 
-      
-      const { access_token, user: userData } = data
+      const data: { access_token: string } = await response.json() 
+      console.log('Login API success, received token.');
+
+      const { access_token } = data
       
       localStorage.setItem('access_token', access_token)
-      setToken(access_token)
-      setUser(userData)
-      setRole(userData.role)
 
-      // Log the received user data, especially the role
-      console.log("Login successful, user data:", userData);
-      console.log("User role for redirection:", userData.role);
+      console.log('Calling fetchAndSetUser after successful login...');
+      const refreshedUserData = await fetchAndSetUser();
 
-      if (userData.role === 'TEACHER' && userData.teacher_id) {
-         setTeacherId(userData.teacher_id);
+      if (refreshedUserData) {
+          console.log(`Redirecting based on role: ${refreshedUserData.role}`);
+
+          if (refreshedUserData.role === 'TEACHER') {
+            router.push('/dashboard/teacher');
+          } else if (refreshedUserData.role === 'STUDENT') {
+            router.push('/dashboard/student');
+          } else {
+             console.error("Unknown user role after login:", refreshedUserData.role);
+             setError("Bilinmeyen kullanıcı rolü.");
+             localStorage.removeItem('access_token');
+             setToken(null);setUser(null);setRole(null);setTeacherId(null);
+          }
       } else {
-         setTeacherId(null);
+          throw new Error("Kullanıcı bilgileri giriş sonrası alınamadı.");
       }
 
-      sessionStorage.setItem('needsDashboardRefresh', 'true');
-
-      if (userData.role === 'TEACHER') {
-        router.push('/dashboard/teacher');
-      } else if (userData.role === 'STUDENT') {
-        router.push('/dashboard/student');
-        // Removed the forced refresh as it interferes with navigation
-        // Data loading is now handled by waiting for authLoading in dashboard/courses pages
-      }
     } catch (err) {
-      console.error('Login error:', err)
-      setError(err instanceof Error ? err.message : 'Giriş başarısız')
+      console.error('Login process error:', err)
+      localStorage.removeItem('access_token');
+      setToken(null);
+      setUser(null);
+      setRole(null);
+      setTeacherId(null);
+      setError(err instanceof Error ? err.message : 'Giriş işlemi sırasında bir hata oluştu')
     } finally {
       setLoading(false)
     }
   }
 
-  // Çıkış işlemi - token state'i de temizleniyor
+  // Çıkış işlemi - Değişiklik yok
   const logout = () => {
     localStorage.removeItem('access_token')
-    setToken(null) // Token state'ini temizle
+    setToken(null)
     setUser(null)
     setRole(null)
-    setTeacherId(null) // Çıkışta teacherId'yi sıfırla
+    setTeacherId(null)
     router.push('/auth/login')
   }
 
-  // Context değeri güncellendi - token ve refreshUser eklendi
+  // Context değeri - Değişiklik yok
   const value = {
     user,
-    token, // Token eklendi
-    teacherId, // Öğretmen ID'si eklendi
+    token,
+    teacherId,
     loading,
     error,
     role,
     login,
     logout,
-    isAuthenticated: !!user, // veya !!token da kullanılabilir
+    isAuthenticated: !!user,
     apiUrl,
     setApiUrl,
-    refreshUser: fetchAndSetUser // refreshUser fonksiyonu bağlama eklendi
+    refreshUser: fetchAndSetUser
   }
 
   return (
